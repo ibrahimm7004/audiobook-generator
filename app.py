@@ -358,21 +358,17 @@ class RawProseParser:
         for para in paragraphs:
             spans = list(self.quote_pat.finditer(para))
 
-            # narration-only paragraph
             if not spans:
                 if self.include_narration:
-                    fx_list = self._scan_for_fx(para)
-                    fx_text = ''.join(f"*{fx}*" for fx in fx_list)
-                    formatted_lines.append(
-                        f"[Narrator]: {para} {fx_text}".strip())
+                    formatted_lines.append(f"[Narrator]: {para}".strip())
                     dialogues.append({
-                        "type": "speech",
                         "character": "Narrator",
                         "text": para,
                         "emotions": [],
-                        "fx": fx_list,
+                        "sound_effects": []
                     })
                     stats["narration_blocks"] += 1
+
                 continue
 
             for i, m in enumerate(spans):
