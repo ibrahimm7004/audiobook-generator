@@ -26,19 +26,18 @@ APP_PASSWORD_TEAM = st.secrets["APP_PASSWORD_TEAM"]
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
-if platform.system() == "Windows":
-    # Local Windows → bundled ffmpeg/ffprobe
-    ffmpeg_dir = os.path.join(PROJECT_ROOT, "ffmpeg", "bin")
-    os.environ["PATH"] = ffmpeg_dir + os.pathsep + os.environ["PATH"]
+# Use imageio-ffmpeg for ffmpeg
+ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+AudioSegment.converter = ffmpeg_path
 
-else:
-    # Streamlit Cloud (Linux) → use imageio-ffmpeg
-    ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
-    ffprobe_path = imageio_ffmpeg.get_ffprobe_exe()
-
-    # Force pydub to use these
-    AudioSegment.converter = ffmpeg_path
+# ffprobe is not included in imageio-ffmpeg
+ffprobe_path = shutil.which("ffprobe")
+if ffprobe_path:
     AudioSegment.ffprobe = ffprobe_path
+else:
+    AudioSegment.ffprobe = None
+    print("⚠️ ffprobe not found — continuing without it. Make sure to specify format='mp3' or 'wav' in from_file() calls.")
+
 
 BASE_DIR = Path(__file__).parent
 CONFIG_DIR = BASE_DIR / "configs"
