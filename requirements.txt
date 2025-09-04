@@ -1,0 +1,7 @@
+streamlit
+elevenlabs
+pydub
+imageio-ffmpeg
+python-docx
+PyPDF2
+python-dotenv
