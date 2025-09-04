@@ -864,7 +864,7 @@ class DialogueAudioGenerator:
             elif ext == '.ogg':
                 return AudioSegment.from_ogg(fx_file)
             else:
-                return AudioSegment.from_file(fx_file)
+                return AudioSegment.from_file(fx_file, format=ext.lstrip("."))
         except Exception as e:
             st.warning(f"Error loading {fx_file}: {e}")
             return AudioSegment.silent(duration=500)
