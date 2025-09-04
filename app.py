@@ -27,21 +27,18 @@ APP_PASSWORD_TEAM = st.secrets["APP_PASSWORD_TEAM"]
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 if platform.system() == "Windows":
-    # Local Windows → bundled ffmpeg
+    # Local Windows → bundled ffmpeg/ffprobe
     ffmpeg_dir = os.path.join(PROJECT_ROOT, "ffmpeg", "bin")
     os.environ["PATH"] = ffmpeg_dir + os.pathsep + os.environ["PATH"]
-else:
-    # Streamlit Cloud (Linux) → imageio-ffmpeg for ffmpeg
-    ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
-    AudioSegment.converter = ffmpeg_path
 
-    # ffprobe is not provided by imageio → fall back to system-installed ffprobe
-    ffprobe_path = shutil.which("ffprobe")
-    if ffprobe_path:
-        AudioSegment.ffprobe = ffprobe_path
-    else:
-        # fallback: let it warn, but won’t block speech decoding
-        print("⚠️ ffprobe not found — continuing without it.")
+else:
+    # Streamlit Cloud (Linux) → use imageio-ffmpeg
+    ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+    ffprobe_path = imageio_ffmpeg.get_ffprobe_exe()
+
+    # Force pydub to use these
+    AudioSegment.converter = ffmpeg_path
+    AudioSegment.ffprobe = ffprobe_path
 
 BASE_DIR = Path(__file__).parent
 CONFIG_DIR = BASE_DIR / "configs"
