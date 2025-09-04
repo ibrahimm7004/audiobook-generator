@@ -30,14 +30,9 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
 AudioSegment.converter = ffmpeg_path
 
-# ffprobe is not included in imageio-ffmpeg
-ffprobe_path = shutil.which("ffprobe")
-if ffprobe_path:
-    AudioSegment.ffprobe = ffprobe_path
-else:
-    AudioSegment.ffprobe = None
-    print("⚠️ ffprobe not found — continuing without it. Make sure to specify format='mp3' or 'wav' in from_file() calls.")
-
+# Disable ffprobe entirely – rely on explicit format arguments instead
+AudioSegment.ffprobe = None
+print("⚠️ ffprobe disabled — using explicit format loaders (mp3/wav).")
 
 BASE_DIR = Path(__file__).parent
 CONFIG_DIR = BASE_DIR / "configs"
