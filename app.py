@@ -13,12 +13,9 @@ from dataclasses import dataclass
 from typing import List, Dict, Optional, Tuple
 import hashlib
 from datetime import datetime
-import platform
 import shutil
-import imageio_ffmpeg
 from pydub import AudioSegment, effects
 from dotenv import load_dotenv
-import streamlit as st
 
 ELEVENLABS_API_KEY = st.secrets["ELEVENLABS_API_KEY"]
 APP_PASSWORD_CLIENT = st.secrets["APP_PASSWORD_CLIENT"]
@@ -26,8 +23,8 @@ APP_PASSWORD_TEAM = st.secrets["APP_PASSWORD_TEAM"]
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
-AudioSegment.converter = imageio_ffmpeg.get_ffmpeg_exe()
-AudioSegment.ffprobe = os.path.join(os.path.dirname(__file__), "ffprobe")
+AudioSegment.converter = shutil.which("ffmpeg") or "ffmpeg"
+AudioSegment.ffprobe = shutil.which("ffprobe") or "ffprobe"
 
 BASE_DIR = Path(__file__).parent
 CONFIG_DIR = BASE_DIR / "configs"
