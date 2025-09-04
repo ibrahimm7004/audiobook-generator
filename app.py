@@ -488,16 +488,14 @@ class RawProseParser:
 
             tail = tail.strip()
             if tail and self.include_narration:
-                fx_list = self._scan_for_fx(tail)
-                fx_text = ''.join(f"*{fx}*" for fx in fx_list)
-                formatted_lines.append(f"[Narrator]: {tail} {fx_text}".strip())
+                formatted_lines.append(f"[Narrator]: {tail}")
                 dialogues.append({
-                    "type": "speech",
                     "character": "Narrator",
                     "text": tail,
                     "emotions": [],
-                    "fx": fx_list,
+                    "sound_effects": []
                 })
+
                 stats["narration_blocks"] += 1
 
         return RawParseResult("\n".join(formatted_lines), dialogues, stats)
