@@ -26,11 +26,8 @@ APP_PASSWORD_TEAM = st.secrets["APP_PASSWORD_TEAM"]
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
-ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
-AudioSegment.converter = ffmpeg_path
-
-# Disable ffprobe completely
-AudioSegment.ffprobe = None
+AudioSegment.converter = imageio_ffmpeg.get_ffmpeg_exe()
+AudioSegment.ffprobe = os.path.join(os.path.dirname(__file__), "ffprobe")
 
 BASE_DIR = Path(__file__).parent
 CONFIG_DIR = BASE_DIR / "configs"
