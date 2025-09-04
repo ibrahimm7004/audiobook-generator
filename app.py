@@ -26,13 +26,11 @@ APP_PASSWORD_TEAM = st.secrets["APP_PASSWORD_TEAM"]
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
-# Use imageio-ffmpeg for ffmpeg
 ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
 AudioSegment.converter = ffmpeg_path
 
-# Disable ffprobe entirely – rely on explicit format arguments instead
+# Disable ffprobe completely
 AudioSegment.ffprobe = None
-print("⚠️ ffprobe disabled — using explicit format loaders (mp3/wav).")
 
 BASE_DIR = Path(__file__).parent
 CONFIG_DIR = BASE_DIR / "configs"
