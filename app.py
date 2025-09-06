@@ -12,6 +12,8 @@ from ui.tabs import (
     create_raw_parser_tab,
     generate_audio_for_tab
 )
+import nltk
+nltk.download('wordnet')
 
 
 def create_main_generator_content():
