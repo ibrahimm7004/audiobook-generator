@@ -1,0 +1,678 @@
+{
+  "apartmentcreaks": {
+    "file": "apartment_creaks.wav",
+    "original": "apartment_creaks"
+  },
+  "basementdrip": {
+    "file": "basement_drip.wav",
+    "original": "basement_drip"
+  },
+  "bedcreaksfast": {
+    "file": "bed_creaks_fast.wav",
+    "original": "bed_creaks_fast"
+  },
+  "bedcreaksmetal": {
+    "file": "bed_creaks_metal.wav",
+    "original": "bed_creaks_metal"
+  },
+  "bedcreaksslow": {
+    "file": "bed_creaks_slow.wav",
+    "original": "bed_creaks_slow"
+  },
+  "bedcreakswood": {
+    "file": "bed_creaks_wood.wav",
+    "original": "bed_creaks_wood"
+  },
+  "birds": {
+    "file": "birds.wav",
+    "original": "birds"
+  },
+  "bodyslaps": {
+    "file": "body_slaps.wav",
+    "original": "body_slaps"
+  },
+  "bombtickingfast": {
+    "file": "bomb_ticking_fast.wav",
+    "original": "bomb_ticking_fast"
+  },
+  "bombtickingslow": {
+    "file": "bomb_ticking_slow.wav",
+    "original": "bomb_ticking_slow"
+  },
+  "bouncefx": {
+    "file": "bounce_fx.wav",
+    "original": "bounce_fx"
+  },
+  "brasnap": {
+    "file": "bra_snap.wav",
+    "original": "bra_snap"
+  },
+  "breathcaught": {
+    "file": "breath_caught.wav",
+    "original": "breath_caught"
+  },
+  "breeze": {
+    "file": "breeze.wav",
+    "original": "breeze"
+  },
+  "brokensobs": {
+    "file": "broken_sobs.wav",
+    "original": "broken_sobs"
+  },
+  "bulletimpactflesh": {
+    "file": "bullet_impact_flesh.wav",
+    "original": "bullet_impact_flesh"
+  },
+  "bulletimpactglass": {
+    "file": "bullet_impact_glass.wav",
+    "original": "bullet_impact_glass"
+  },
+  "bulletimpactmetal": {
+    "file": "bullet_impact_metal.wav",
+    "original": "bullet_impact_metal"
+  },
+  "bulletimpactwood": {
+    "file": "bullet_impact_wood.wav",
+    "original": "bullet_impact_wood"
+  },
+  "buttons": {
+    "file": "buttons.wav",
+    "original": "buttons"
+  },
+  "c4beep": {
+    "file": "c4_beep.wav",
+    "original": "c4_beep"
+  },
+  "cardoor": {
+    "file": "car_door.wav",
+    "original": "car_door"
+  },
+  "cardriving": {
+    "file": "car_driving.wav",
+    "original": "car_driving"
+  },
+  "carengine": {
+    "file": "car_engine.wav",
+    "original": "car_engine"
+  },
+  "carscreech": {
+    "file": "car_screech.wav",
+    "original": "car_screech"
+  },
+  "chokesoft": {
+    "file": "choke_soft.wav",
+    "original": "choke_soft"
+  },
+  "choking": {
+    "file": "choking.wav",
+    "original": "choking"
+  },
+  "chuckles": {
+    "file": "chuckles.wav",
+    "original": "chuckles"
+  },
+  "cinematicthuds": {
+    "file": "cinematic_thuds.wav",
+    "original": "cinematic_thuds"
+  },
+  "citytraffic": {
+    "file": "city_traffic.wav",
+    "original": "city_traffic"
+  },
+  "classroommurmur": {
+    "file": "classroom_murmur.wav",
+    "original": "classroom_murmur"
+  },
+  "clothesremovalbelt": {
+    "file": "clothes_removal_belt.wav",
+    "original": "clothes_removal_belt"
+  },
+  "clothesremovalfabricsliding": {
+    "file": "clothes_removal_fabric_sliding.wav",
+    "original": "clothes_removal_fabric_sliding"
+  },
+  "clubambiencebass": {
+    "file": "club_ambience_bass.wav",
+    "original": "club_ambience_bass"
+  },
+  "clubambiencechatter": {
+    "file": "club_ambience_chatter.wav",
+    "original": "club_ambience_chatter"
+  },
+  "cough": {
+    "file": "cough.wav",
+    "original": "cough"
+  },
+  "cries": {
+    "file": "cries.wav",
+    "original": "cries"
+  },
+  "cryingheavy": {
+    "file": "crying_heavy.wav",
+    "original": "crying_heavy"
+  },
+  "cryinglight": {
+    "file": "crying_light.wav",
+    "original": "crying_light"
+  },
+  "cryingsobbing": {
+    "file": "crying_sobbing.wav",
+    "original": "crying_sobbing"
+  },
+  "cuffsclicking": {
+    "file": "cuffs_clicking.wav",
+    "original": "cuffs_clicking"
+  },
+  "cutlery": {
+    "file": "cutlery.wav",
+    "original": "cutlery"
+  },
+  "debrisfalling": {
+    "file": "debris_falling.wav",
+    "original": "debris_falling"
+  },
+  "deepmoan": {
+    "file": "deep_moan.wav",
+    "original": "deep_moan"
+  },
+  "detonationdistant": {
+    "file": "detonation_distant.wav",
+    "original": "detonation_distant"
+  },
+  "detonationindoor": {
+    "file": "detonation_indoor.wav",
+    "original": "detonation_indoor"
+  },
+  "detonationoutdoor": {
+    "file": "detonation_outdoor.wav",
+    "original": "detonation_outdoor"
+  },
+  "distanttv": {
+    "file": "distant_tv.wav",
+    "original": "distant_tv"
+  },
+  "distantvoices": {
+    "file": "distant_voices.wav",
+    "original": "distant_voices"
+  },
+  "dockcreaks": {
+    "file": "dock_creaks.wav",
+    "original": "dock_creaks"
+  },
+  "doorclose": {
+    "file": "door_close.wav",
+    "original": "door_close"
+  },
+  "doorcreak": {
+    "file": "door_creak.wav",
+    "original": "door_creak"
+  },
+  "doorforcedopen": {
+    "file": "door_forced_open.wav",
+    "original": "door_forced_open"
+  },
+  "dooropen": {
+    "file": "door_open.wav",
+    "original": "door_open"
+  },
+  "doorslam": {
+    "file": "door_slam.wav",
+    "original": "door_slam"
+  },
+  "echo": {
+    "file": "echo.wav",
+    "original": "echo"
+  },
+  "echoinghallway": {
+    "file": "echoing_hallway.wav",
+    "original": "echoing_hallway"
+  },
+  "enginerev": {
+    "file": "engine_rev.wav",
+    "original": "engine_rev"
+  },
+  "explosionshockwave": {
+    "file": "explosion_shockwave.wav",
+    "original": "explosion_shockwave"
+  },
+  "fireplace": {
+    "file": "fireplace.wav",
+    "original": "fireplace"
+  },
+  "firecrackling": {
+    "file": "fire_crackling.wav",
+    "original": "fire_crackling"
+  },
+  "flickeringfluorescentlighthum": {
+    "file": "flickering_fluorescent_light_hum.wav",
+    "original": "flickering_fluorescent_light_hum"
+  },
+  "flirtygiggles": {
+    "file": "flirty_giggles.wav",
+    "original": "flirty_giggles"
+  },
+  "footstepsboots": {
+    "file": "footsteps_boots.wav",
+    "original": "footsteps_boots"
+  },
+  "footstepsheels": {
+    "file": "footsteps_heels.wav",
+    "original": "footsteps_heels"
+  },
+  "footstepsrunning": {
+    "file": "footsteps_running.wav",
+    "original": "footsteps_running"
+  },
+  "footstepsslow": {
+    "file": "footsteps_slow.wav",
+    "original": "footsteps_slow"
+  },
+  "forestambience": {
+    "file": "forest_ambience.wav",
+    "original": "forest_ambience"
+  },
+  "furniturebumps": {
+    "file": "furniture_bumps.wav",
+    "original": "furniture_bumps"
+  },
+  "gag": {
+    "file": "gag.wav",
+    "original": "gag"
+  },
+  "gagging": {
+    "file": "gagging.wav",
+    "original": "gagging"
+  },
+  "gasping": {
+    "file": "gasping.wav",
+    "original": "gasping"
+  },
+  "gasps": {
+    "file": "gasps.wav",
+    "original": "gasps"
+  },
+  "glassbreakingbottles": {
+    "file": "glass_breaking_bottles.wav",
+    "original": "glass_breaking_bottles"
+  },
+  "glassbreakingwindows": {
+    "file": "glass_breaking_windows.wav",
+    "original": "glass_breaking_windows"
+  },
+  "groans": {
+    "file": "groans.wav",
+    "original": "groans"
+  },
+  "growls": {
+    "file": "growls.wav",
+    "original": "growls"
+  },
+  "grunts": {
+    "file": "grunts.wav",
+    "original": "grunts"
+  },
+  "gunshotautomatic": {
+    "file": "gunshot_automatic.wav",
+    "original": "gunshot_automatic"
+  },
+  "gunshotburst": {
+    "file": "gunshot_burst.wav",
+    "original": "gunshot_burst"
+  },
+  "gunshotsilenced": {
+    "file": "gunshot_silenced.wav",
+    "original": "gunshot_silenced"
+  },
+  "gunshotsingle": {
+    "file": "gunshot_single.wav",
+    "original": "gunshot_single"
+  },
+  "guncocking": {
+    "file": "gun_cocking.wav",
+    "original": "gun_cocking"
+  },
+  "heavybreathing": {
+    "file": "heavy_breathing.wav",
+    "original": "heavy_breathing"
+  },
+  "heelswalking": {
+    "file": "heels_walking.wav",
+    "original": "heels_walking"
+  },
+  "helicopterflyover": {
+    "file": "helicopter_flyover.wav",
+    "original": "helicopter_flyover"
+  },
+  "hesitantwords": {
+    "file": "hesitant_words.wav",
+    "original": "hesitant_words"
+  },
+  "honks": {
+    "file": "honks.wav",
+    "original": "honks"
+  },
+  "inhalegasp": {
+    "file": "inhale_gasp.wav",
+    "original": "inhale_gasp"
+  },
+  "interrogationfootsteps": {
+    "file": "interrogation_footsteps.wav",
+    "original": "interrogation_footsteps"
+  },
+  "interrogationheavybreathing": {
+    "file": "interrogation_heavy_breathing.wav",
+    "original": "interrogation_heavy_breathing"
+  },
+  "interrogationrestrainedgroans": {
+    "file": "interrogation_restrained_groans.wav",
+    "original": "interrogation_restrained_groans"
+  },
+  "kissesdeep": {
+    "file": "kisses_deep.wav",
+    "original": "kisses_deep"
+  },
+  "kissesgentle": {
+    "file": "kisses_gentle.wav",
+    "original": "kisses_gentle"
+  },
+  "kissesneck": {
+    "file": "kisses_neck.wav",
+    "original": "kisses_neck"
+  },
+  "kissessloppy": {
+    "file": "kisses_sloppy.wav",
+    "original": "kisses_sloppy"
+  },
+  "knifeslash": {
+    "file": "knife_slash.wav",
+    "original": "knife_slash"
+  },
+  "knifestabbingdeep": {
+    "file": "knife_stabbing_deep.wav",
+    "original": "knife_stabbing_deep"
+  },
+  "knifestabbingquick": {
+    "file": "knife_stabbing_quick.wav",
+    "original": "knife_stabbing_quick"
+  },
+  "knifestabbingslow": {
+    "file": "knife_stabbing_slow.wav",
+    "original": "knife_stabbing_slow"
+  },
+  "knockpounding": {
+    "file": "knock_pounding.wav",
+    "original": "knock_pounding"
+  },
+  "knocksoft": {
+    "file": "knock_soft.wav",
+    "original": "knock_soft"
+  },
+  "knockurgent": {
+    "file": "knock_urgent.wav",
+    "original": "knock_urgent"
+  },
+  "laughs": {
+    "file": "laughs.wav",
+    "original": "laughs"
+  },
+  "licking": {
+    "file": "licking.wav",
+    "original": "licking"
+  },
+  "lipsmacks": {
+    "file": "lip_smacks.wav",
+    "original": "lip_smacks"
+  },
+  "metalchainsdragging": {
+    "file": "metal_chains_dragging.wav",
+    "original": "metal_chains_dragging"
+  },
+  "moaningwithcryingoverlay": {
+    "file": "moaning_with_crying_overlay.wav",
+    "original": "moaning_with_crying_overlay"
+  },
+  "muffledmoan": {
+    "file": "muffled_moan.wav",
+    "original": "muffled_moan"
+  },
+  "muffledwhimpers": {
+    "file": "muffled_whimpers.wav",
+    "original": "muffled_whimpers"
+  },
+  "oceanwaves": {
+    "file": "ocean_waves.wav",
+    "original": "ocean_waves"
+  },
+  "overstimulationtremors": {
+    "file": "overstimulation_tremors.wav",
+    "original": "overstimulation_tremors"
+  },
+  "pantingerratic": {
+    "file": "panting_erratic.wav",
+    "original": "panting_erratic"
+  },
+  "pantingfast": {
+    "file": "panting_fast.wav",
+    "original": "panting_fast"
+  },
+  "pantingslow": {
+    "file": "panting_slow.wav",
+    "original": "panting_slow"
+  },
+  "policesirensclose": {
+    "file": "police_sirens_close.wav",
+    "original": "police_sirens_close"
+  },
+  "policesirensdistant": {
+    "file": "police_sirens_distant.wav",
+    "original": "police_sirens_distant"
+  },
+  "radiostatic": {
+    "file": "radio_static.wav",
+    "original": "radio_static"
+  },
+  "rainlight": {
+    "file": "rain_light.wav",
+    "original": "rain_light"
+  },
+  "rainstormy": {
+    "file": "rain_stormy.wav",
+    "original": "rain_stormy"
+  },
+  "reloading": {
+    "file": "reloading.wav",
+    "original": "reloading"
+  },
+  "restaurantnoise": {
+    "file": "restaurant_noise.wav",
+    "original": "restaurant_noise"
+  },
+  "restraintstruggle": {
+    "file": "restraint_struggle.wav",
+    "original": "restraint_struggle"
+  },
+  "ricochetsounds": {
+    "file": "ricochet_sounds.wav",
+    "original": "ricochet_sounds"
+  },
+  "risinganxietyambience": {
+    "file": "rising_anxiety_ambience.wav",
+    "original": "rising_anxiety_ambience"
+  },
+  "risingmoan": {
+    "file": "rising_moan.wav",
+    "original": "rising_moan"
+  },
+  "safetyclick": {
+    "file": "safety_click.wav",
+    "original": "safety_click"
+  },
+  "screamsfear": {
+    "file": "screams_fear.wav",
+    "original": "screams_fear"
+  },
+  "screamsofpain": {
+    "file": "screams_of_pain.wav",
+    "original": "screams_of_pain"
+  },
+  "screamspleasure": {
+    "file": "screams_pleasure.wav",
+    "original": "screams_pleasure"
+  },
+  "seagulls": {
+    "file": "seagulls.wav",
+    "original": "seagulls"
+  },
+  "seductivehum": {
+    "file": "seductive_hum.wav",
+    "original": "seductive_hum"
+  },
+  "shakygasp": {
+    "file": "shaky_gasp.wav",
+    "original": "shaky_gasp"
+  },
+  "sharpgasp": {
+    "file": "sharp_gasp.wav",
+    "original": "sharp_gasp"
+  },
+  "sheetsrustlinglight": {
+    "file": "sheets_rustling_light.wav",
+    "original": "sheets_rustling_light"
+  },
+  "sheetsrustlingtossed": {
+    "file": "sheets_rustling_tossed.wav",
+    "original": "sheets_rustling_tossed"
+  },
+  "shelldrop": {
+    "file": "shell_drop.wav",
+    "original": "shell_drop"
+  },
+  "shoesdropped": {
+    "file": "shoes_dropped.wav",
+    "original": "shoes_dropped"
+  },
+  "shortah": {
+    "file": "short_ah.wav",
+    "original": "short_ah"
+  },
+  "shortmm": {
+    "file": "short_mm.wav",
+    "original": "short_mm"
+  },
+  "sighs": {
+    "file": "sighs.wav",
+    "original": "sighs"
+  },
+  "snarls": {
+    "file": "snarls.wav",
+    "original": "snarls"
+  },
+  "softgrowl": {
+    "file": "soft_growl.wav",
+    "original": "soft_growl"
+  },
+  "softmoan": {
+    "file": "soft_moan.wav",
+    "original": "soft_moan"
+  },
+  "sucking": {
+    "file": "sucking.wav",
+    "original": "sucking"
+  },
+  "tableknock": {
+    "file": "table_knock.wav",
+    "original": "table_knock"
+  },
+  "teasingbreath": {
+    "file": "teasing_breath.wav",
+    "original": "teasing_breath"
+  },
+  "teasingsounds": {
+    "file": "teasing_sounds.wav",
+    "original": "teasing_sounds"
+  },
+  "tensiondrones": {
+    "file": "tension_drones.wav",
+    "original": "tension_drones"
+  },
+  "thrustimpacts": {
+    "file": "thrust_impacts.wav",
+    "original": "thrust_impacts"
+  },
+  "thunder": {
+    "file": "thunder.wav",
+    "original": "thunder"
+  },
+  "tirespeelingout": {
+    "file": "tires_peeling_out.wav",
+    "original": "tires_peeling_out"
+  },
+  "tongueclick": {
+    "file": "tongue_click.wav",
+    "original": "tongue_click"
+  },
+  "torturebeltlash": {
+    "file": "torture_belt_lash.wav",
+    "original": "torture_belt_lash"
+  },
+  "tortureelectriczap": {
+    "file": "torture_electric_zap.wav",
+    "original": "torture_electric_zap"
+  },
+  "torturemuffledscreams": {
+    "file": "torture_muffled_screams.wav",
+    "original": "torture_muffled_screams"
+  },
+  "torturewhipcrack": {
+    "file": "torture_whip_crack.wav",
+    "original": "torture_whip_crack"
+  },
+  "vocaloverstimulation": {
+    "file": "vocal_overstimulation.wav",
+    "original": "vocal_overstimulation"
+  },
+  "vocaltremble": {
+    "file": "vocal_tremble.wav",
+    "original": "vocal_tremble"
+  },
+  "voicetremble": {
+    "file": "voice_tremble.wav",
+    "original": "voice_tremble"
+  },
+  "wetsoundsintense": {
+    "file": "wet_sounds_intense.wav",
+    "original": "wet_sounds_intense"
+  },
+  "wetsoundslight": {
+    "file": "wet_sounds_light.wav",
+    "original": "wet_sounds_light"
+  },
+  "wetsoundsrhythmic": {
+    "file": "wet_sounds_rhythmic.wav",
+    "original": "wet_sounds_rhythmic"
+  },
+  "whimpers": {
+    "file": "whimpers.wav",
+    "original": "whimpers"
+  },
+  "whispersfast": {
+    "file": "whispers_fast.wav",
+    "original": "whispers_fast"
+  },
+  "whispersseductive": {
+    "file": "whispers_seductive.wav",
+    "original": "whispers_seductive"
+  },
+  "whispersslow": {
+    "file": "whispers_slow.wav",
+    "original": "whispers_slow"
+  },
+  "wind": {
+    "file": "wind.wav",
+    "original": "wind"
+  },
+  "zipper": {
+    "file": "zipper.wav",
+    "original": "zipper"
+  }
+}

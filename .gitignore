@@ -1,0 +1,25 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+
+# Streamlit cache
+.streamlit/
+
+# Virtual environments
+.env
+.venv/
+venv/
+
+# IDE/editor configs
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local ffmpeg binaries
+ffmpeg/
