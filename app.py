@@ -13,7 +13,11 @@ from ui.tabs import (
     generate_audio_for_tab
 )
 import nltk
-nltk.download('wordnet')
+
+try:
+    nltk.data.find("corpora/wordnet")
+except LookupError:
+    nltk.download("wordnet", quiet=True)
 
 
 def create_main_generator_content():
