@@ -558,7 +558,7 @@ def create_raw_parser_tab(get_known_characters_callable):
                     "gender": gender_choice
                 }
             st.session_state["reset_char_input"] = True
-            st.experimental_rerun()
+            st.rerun()
 
         # Modern styled list of added characters
         if st.session_state.custom_characters:
@@ -575,7 +575,7 @@ def create_raw_parser_tab(get_known_characters_callable):
                 with c2:
                     if st.button("❌", key=f"del_char_{idx}", use_container_width=True):
                         st.session_state.custom_characters.pop(char)
-                        st.experimental_rerun()
+                        st.rerun()
     else:
         st.session_state.use_custom_characters = False
         st.session_state.custom_characters = {}
