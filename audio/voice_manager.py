@@ -77,15 +77,6 @@ class VoiceManager:
         # Start with predefined voices
         self.voice_assignments = get_flat_character_voices().copy()
 
-        # Add custom characters if enabled
-        if st.session_state.get("use_custom_characters"):
-            for char, meta in st.session_state.get("custom_characters", {}).items():
-                if char not in self.voice_assignments:
-                    self.voice_assignments[char] = {
-                        "voice_id": meta.get("voice_id"),
-                        "gender": meta.get("gender")
-                    }
-
     def get_available_voices(self) -> Dict[str, Dict[str, str]]:
         """Get all available voices with descriptions"""
         return CHARACTER_VOICES
@@ -101,8 +92,6 @@ class VoiceManager:
         if not data:
             return None
         voice_id = data["voice_id"] if isinstance(data, dict) else data
-        if not voice_id and st.session_state.get("use_custom_characters"):
-            return st.session_state.get("default_custom_voice", "default_voice_id_here")
         return voice_id
 
     def get_character_description(self, character: str) -> str:

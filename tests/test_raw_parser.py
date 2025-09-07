@@ -1,4 +1,4 @@
-from parsers.raw_parser import RawProseParser
+from parsers.openai_parser import OpenAIParser
 
 
 def run_tests():
@@ -80,7 +80,8 @@ def run_tests():
         print(f"Testing with include_narration={include_narration}")
         print("===============================")
 
-        parser = RawProseParser(include_narration=include_narration)
+        parser = OpenAIParser(
+            include_narration=include_narration, detect_fx=True)
 
         for t in tests:
             result = parser.convert(t["input"])

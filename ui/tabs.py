@@ -1,5 +1,5 @@
 import streamlit as st
-from parsers.raw_parser import RawProseParser
+from parsers.openai_parser import OpenAIParser
 from parsers.dialogue_parser import DialogueParser
 from audio.generator import DialogueAudioGenerator
 import io
@@ -509,76 +509,15 @@ def create_raw_parser_tab(get_known_characters_callable):
         attach_fx = st.checkbox(
             "Detect FX from narration (gasp/laugh/etc.)", value=True, key="raw_attach_fx")
 
-    # Character source toggle (modernized radio)
-    char_mode = st.radio(
-        "Character Source:",
-        ["Use voice-mapped characters", "Add my own characters"],
-        horizontal=True,
-        key="raw_char_mode",
-        help="Choose whether to rely on your saved voice-mapped characters "
-            "or provide your own custom character names. "
-            "For custom characters, make sure spelling matches exactly."
+    # Friendly notice about character handling
+    st.info(
+        """
+        🤖 AI Character Detection is enabled. The system automatically recognizes and attributes speakers
+        using long-range context (names, pronouns, and narration cues). No manual character setup required.
+        """
     )
 
-    if char_mode == "Add my own characters":
-        st.session_state.use_custom_characters = True
-
-        if "custom_characters" not in st.session_state:
-            st.session_state.custom_characters = {}
-        elif isinstance(st.session_state.custom_characters, list):
-            # migrate old list format to dict
-            st.session_state.custom_characters = {
-                c: {"voice_id": None, "gender": "M"} for c in st.session_state.custom_characters
-            }
-
-        st.markdown("**Add a character:**")
-        col1, col2, col3 = st.columns([4, 2, 1])
-        with col1:
-            new_char = st.text_input(
-                "Enter character name",
-                placeholder="e.g. Aria",
-                key="raw_new_char",
-                label_visibility="collapsed"
-            )
-        with col2:
-            gender_choice = st.selectbox(
-                "Gender",
-                ["M", "F"],
-                key="raw_new_char_gender",
-                label_visibility="collapsed"
-            )
-        with col3:
-            add_btn = st.button("➕ Add", key="raw_add_char",
-                                use_container_width=True)
-
-        if add_btn and new_char.strip():
-            if new_char.strip() not in st.session_state.custom_characters:
-                st.session_state.custom_characters[new_char.strip()] = {
-                    "voice_id": None,
-                    "gender": gender_choice
-                }
-            st.session_state["reset_char_input"] = True
-            st.rerun()
-
-        # Modern styled list of added characters
-        if st.session_state.custom_characters:
-            st.markdown("**Characters added:**")
-            for idx, (char, meta) in enumerate(st.session_state.custom_characters.items()):
-                c1, c2 = st.columns([6, 1])
-                with c1:
-                    st.markdown(
-                        f"<div style='padding:6px 10px; margin:4px 0; "
-                        f"border-radius:6px; background-color:#2e2e2e; "
-                        f"display:inline-block; color:white;'>{char} ({meta['gender']})</div>",
-                        unsafe_allow_html=True
-                    )
-                with c2:
-                    if st.button("❌", key=f"del_char_{idx}", use_container_width=True):
-                        st.session_state.custom_characters.pop(char)
-                        st.rerun()
-    else:
-        st.session_state.use_custom_characters = False
-        st.session_state.custom_characters = {}
+    # Character input removed: parser will use predefined characters from configuration only
 
     raw_text = st.text_area(
         "Raw Prose:",
@@ -594,25 +533,14 @@ def create_raw_parser_tab(get_known_characters_callable):
         key="raw_parser_input",
     )
 
-    # Helper to compute known characters once
-    known = []
-    if st.session_state.get("raw_char_mode") == "Use voice-mapped characters":
-        try:
-            known = list(get_known_characters_callable())
-        except Exception:
-            known = []
-    elif st.session_state.get("raw_char_mode") == "Add my own characters":
-        known = st.session_state.get("custom_characters", [])
-
     # --- Convert action: store result in session, then rerun so the "Send" button can exist on the next run
     if st.button("🔍 Convert Raw → Dialogue", type="primary", use_container_width=True, key="raw_convert_btn"):
         if not raw_text.strip():
             st.error("Please paste some raw prose first.")
         else:
-            parser = RawProseParser(
-                known_characters=known,
+            parser = OpenAIParser(
                 include_narration=include_narration,
-                attach_detected_fx=attach_fx,
+                detect_fx=attach_fx
             )
             result = parser.convert(raw_text)
 
