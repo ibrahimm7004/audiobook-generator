@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from openai import OpenAI
 from collections import defaultdict
 from dotenv import load_dotenv
-from audio.utils import get_flat_character_voices, get_flat_emotion_tags, normalize_effect_name, SOUND_EFFECTS
+from audio.utils import get_flat_emotion_tags, normalize_effect_name, SOUND_EFFECTS
 
 load_dotenv()
 
@@ -46,7 +46,6 @@ class OpenAIParser:
         self.model = model
         self.include_narration = include_narration
         self.detect_fx = detect_fx
-        self.character_voices = get_flat_character_voices()
         self.emotion_tags = get_flat_emotion_tags()
         self.sound_effects = SOUND_EFFECTS
 
@@ -55,7 +54,7 @@ class OpenAIParser:
             "Reformat the input prose into structured dialogue lines.",
             "Schema: [Character] (emotion1)(emotion2): dialogue *fx*",
             "One complete dialogue per line. Do not add commentary.",
-            "Use ONLY the characters listed below from configuration; never invent new names.",
+            "Infer speaker names only from the input text (names, pronouns, context). Do not use any predefined list.",
         ]
 
         # Narrator instruction (also added to system message in parse_text)
@@ -70,15 +69,7 @@ class OpenAIParser:
             rules.append(
                 "Include sound effects like slam, gasp, crack as *fx* tags.")
 
-        # Inject predefined character list with genders from config
-        rules.append("")
-        rules.append(
-            "Character List (choose only from this list; never invent others):")
-        for name, meta in self.character_voices.items():
-            gender = meta.get("gender", "") if isinstance(meta, dict) else ""
-            gender_label = {"M": "Male", "F": "Female"}.get(
-                gender, gender or "Unknown")
-            rules.append(f"- {name} ({gender_label})")
+        # Do not inject any predefined characters; model must deduce speakers from text only
 
         examples = [
             # Character with FX

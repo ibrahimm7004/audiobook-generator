@@ -533,11 +533,25 @@ def create_raw_parser_tab(get_known_characters_callable):
         key="raw_parser_input",
     )
 
-    # --- Convert action: store result in session, then rerun so the "Send" button can exist on the next run
-    if st.button("🔍 Convert Raw → Dialogue", type="primary", use_container_width=True, key="raw_convert_btn"):
-        if not raw_text.strip():
-            st.error("Please paste some raw prose first.")
+    # --- Convert action with loading animation
+    generating = st.session_state.get("raw_is_generating", False)
+
+    cols_btn = st.columns([1, 5])
+    with cols_btn[0]:
+        if generating:
+            st.button("⏳ Generating...", type="primary", use_container_width=True,
+                      key="raw_convert_btn_busy", disabled=True)
         else:
+            if st.button("🔍 Convert Raw → Dialogue", type="primary", use_container_width=True, key="raw_convert_btn"):
+                if not raw_text.strip():
+                    st.error("Please paste some raw prose first.")
+                else:
+                    st.session_state["raw_is_generating"] = True
+                    st.rerun()
+
+    # When flagged, run parser with spinner and then clear flag
+    if st.session_state.get("raw_is_generating"):
+        with st.spinner("Generating..."):
             parser = OpenAIParser(
                 include_narration=include_narration,
                 detect_fx=attach_fx
@@ -549,8 +563,8 @@ def create_raw_parser_tab(get_known_characters_callable):
             st.session_state["raw_last_stats"] = result.stats
             st.session_state["raw_parsed_ready"] = True
 
-            # Important: rerun so the Send button exists *outside* this branch
-            st.rerun()
+        st.session_state["raw_is_generating"] = False
+        st.rerun()
 
     # --- Results area: rendered whenever we have a parsed result in session
     if st.session_state.get("raw_parsed_ready") and st.session_state.get("raw_last_formatted_text"):
