@@ -1,5 +1,5 @@
 import streamlit as st
-from parsers.openai_parser import OpenAIParser, ParseAnalysis
+from parsers.text_parser import ParseAnalysis
 from audio.voice_manager import VoiceManager
 from audio.utils import get_flat_character_voices, get_flat_emotion_tags, normalize_effect_name, SOUND_EFFECTS, CHARACTER_VOICES
 
@@ -88,11 +88,14 @@ def create_voice_management_interface(analysis: ParseAnalysis, tab_prefix: str):
 
     voice_manager = st.session_state[voice_manager_key]
 
-    # Get all available voices for dropdown
+    # Get all available voices for dropdown (map label -> voice_id string)
     all_voices = {}
     for category, chars in CHARACTER_VOICES.items():
-        for char, vid in chars.items():
-            all_voices[char] = vid
+        for char, data in chars.items():
+            if isinstance(data, dict):
+                all_voices[char] = data.get("voice_id")
+            else:
+                all_voices[char] = data
 
     voice_assignments_changed = False
 

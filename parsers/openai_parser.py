@@ -57,43 +57,67 @@ class OpenAIParser:
             "Infer speaker names only from the input text (names, pronouns, context). Do not use any predefined list.",
         ]
 
-        # Narrator instruction (also added to system message in parse_text)
         if self.include_narration:
             rules.append(
-                "If no clear speaker is identified, attribute the line to [Narrator].")
+                "When narration text is present or no clear speaker is identified, output it as [Narrator]: … lines.")
         else:
             rules.append(
-                "Ignore narration or unattributed lines completely. Only output dialogues spoken by characters.")
+                "Do not include narration lines; only output dialogue from identified characters.")
 
         if self.detect_fx:
             rules.append(
                 "Include sound effects like slam, gasp, crack as *fx* tags.")
 
-        # Do not inject any predefined characters; model must deduce speakers from text only
+        # Formatting strictness and narrator parity
+        rules.extend([
+            "Apply the SAME emotion and FX inference policy to [Narrator] lines as to character lines.",
+            "If emotions are present, place them immediately after the character tag: [Narrator] (gentle)(tense): …",
+            "If no emotions are applicable, omit parentheses entirely: [Narrator]: …",
+            "If no FX is applicable, omit the *fx* tag.",
+            "Never output extra spaces before the colon. Valid: '[Narrator]: …' or '[Narrator] (gentle): …'. Invalid: '[Narrator] : …'.",
+        ])
 
+        # Examples
         examples = [
-            # Character with FX
             "Input: Victor stared at the frame. \"Get up!\" he roared, slamming the door.",
             "Output: [Victor] (angry): Get up! *slam*",
             "",
-            # Two consecutive lines by same speaker
             "Input: Aria folded her arms. \"You keep breaking things,\" she snapped. \"I'm not cleaning this up.\"",
             "Output: [Aria] (angry): You keep breaking things,",
             "[Aria]: I'm not cleaning this up.",
             "",
-            # Pronoun switching + FX from narration
             "Input: He looked away. \"Sorry,\" he said softly. The window cracked. \"Did you hear that?\" she whispered.",
             "Output: [Victor] (gentle): Sorry,",
             "[Aria] (whispers): Did you hear that? *crack*",
             "",
-            # Narrator ON example
-            "Input: The lights went out. \"Who's there?\"",
-            "Output: [Narrator]: Who's there?",
-            "",
-            # Narrator OFF example (no output)
-            "Input: The lights went out. \"Who's there?\"",
-            "Output:",
         ]
+
+        if self.include_narration:
+            examples.extend([
+                # Pure narration preserved (no specific emotion)
+                "Input: The lights went out.",
+                "Output: [Narrator]: The lights went out.",
+                "",
+                # Narration with emotional cue + FX
+                "Input: Noah laughs softly as the door slams.",
+                "Output: [Narrator] (gentle): Noah laughs softly. *slam*",
+                "",
+                # Unknown speaker treated as narrator
+                "Input: The lights went out. \"Who's there?\"",
+                "Output: [Narrator]: Who's there?",
+                ""
+            ])
+        else:
+            examples.extend([
+                # Pure narration excluded
+                "Input: The lights went out.",
+                "Output:",
+                "",
+                # Unknown speaker excluded
+                "Input: The lights went out. \"Who's there?\"",
+                "Output:",
+                ""
+            ])
 
         return "\n".join([*rules, "", *examples, "", "Text to parse:", text])
 

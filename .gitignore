@@ -23,3 +23,8 @@ Thumbs.db
 
 # Local ffmpeg binaries
 ffmpeg/
+
+ffprobe
+ffmpeg
+*.exe
+

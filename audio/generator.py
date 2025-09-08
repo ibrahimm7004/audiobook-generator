@@ -61,13 +61,20 @@ class DialogueAudioGenerator:
             if not text or not text.strip():
                 return AudioSegment.silent(duration=500)
 
+            # Ensure we pass a plain string voice id to the API
+            if isinstance(voice_id, dict):
+                voice_id = voice_id.get("voice_id") or voice_id.get(
+                    "id") or voice_id.get("voiceId")
+
             audio_generator = self.client.text_to_speech.convert(
                 voice_id=voice_id,
                 text=text,
                 model_id=model_id,
             )
 
-            temp_file = self.temp_dir / f"temp_{voice_id}_{hash(text)}.mp3"
+            # Create a filesystem-safe filename component for voice id
+            safe_voice = re.sub(r"[^a-zA-Z0-9_-]", "", str(voice_id))
+            temp_file = self.temp_dir / f"temp_{safe_voice}_{hash(text)}.mp3"
 
             # Write all audio data to file
             with open(temp_file, "wb") as f:
@@ -189,10 +196,20 @@ class DialogueAudioGenerator:
                     f"🎤 Generating speech for {char}: {text_preview}")
 
                 # Use custom voice assignment if available
-                voice_id = working_voices.get(char) \
+                voice_info = working_voices.get(char) \
                     or working_voices.get(char.lower()) \
-                    or entry.get("voice_id") \
-                    or st.session_state.get("default_custom_voice", "default_voice_id_here")
+                    or entry.get("voice_id")
+
+                # Extract plain voice id string from various representations
+                if isinstance(voice_info, dict):
+                    voice_id = voice_info.get("voice_id") or voice_info.get(
+                        "id") or voice_info.get("voiceId")
+                else:
+                    voice_id = voice_info
+
+                if not voice_id:
+                    voice_id = st.session_state.get(
+                        "default_custom_voice", "default_voice_id_here")
 
                 # Generate speech with retry mechanism
                 max_retries = 3

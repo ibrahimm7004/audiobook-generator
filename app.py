@@ -2,6 +2,7 @@ import streamlit as st
 from ui.auth import check_password
 from ui.sidebar import create_navigation_sidebar
 from ui.upload import create_file_upload_interface
+from parsers.text_parser import TextParser
 from parsers.openai_parser import OpenAIParser
 from audio.utils import get_flat_character_voices
 from ui.analysis import display_analysis_results, create_voice_management_interface
@@ -89,7 +90,7 @@ Or paste raw text from books/stories...""",
                 st.error("Please enter some text to parse!")
             else:
                 # Initialize parser
-                parser = OpenAIParser(include_narration=True, detect_fx=True)
+                parser = TextParser()
 
                 # Analyze the text
                 with st.spinner("Analyzing text..."):
@@ -242,7 +243,7 @@ Or paste raw text from books/stories...""",
                 st.error("Please enter some text to parse!")
             else:
                 # Initialize parser
-                parser = OpenAIParser(include_narration=True, detect_fx=True)
+                parser = TextParser()
 
                 # Analyze the text
                 with st.spinner("Analyzing text..."):
