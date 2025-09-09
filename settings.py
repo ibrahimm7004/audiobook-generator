@@ -1,35 +1,25 @@
 import os
 import platform
-import shutil
 from pathlib import Path
 from pydub import AudioSegment
-import streamlit as st
 from dotenv import load_dotenv
+import shutil
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
-# --- Hybrid Secrets Handling ---
-if platform.system() == "Windows":  # Local
-    load_dotenv()
+# --- Secrets Handling ---
+if platform.system() == "Windows":  # Local dev
+    load_dotenv()  # load from .env
 
-    ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
-    APP_PASSWORD_CLIENT = os.getenv("APP_PASSWORD_CLIENT")
-    APP_PASSWORD_TEAM = os.getenv("APP_PASSWORD_TEAM")
+ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+APP_PASSWORD_CLIENT = os.environ.get("APP_PASSWORD_CLIENT")
+APP_PASSWORD_TEAM = os.environ.get("APP_PASSWORD_TEAM")
 
-    VALID_PASSWORDS = {
-        APP_PASSWORD_CLIENT: "client",
-        APP_PASSWORD_TEAM: "team",
-    }
-
-else:  # Streamlit Cloud (Linux)
-    ELEVENLABS_API_KEY = st.secrets["ELEVENLABS_API_KEY"]
-    APP_PASSWORD_CLIENT = st.secrets["APP_PASSWORD_CLIENT"]
-    APP_PASSWORD_TEAM = st.secrets["APP_PASSWORD_TEAM"]
-
-    VALID_PASSWORDS = {
-        APP_PASSWORD_CLIENT: "client",
-        APP_PASSWORD_TEAM: "team",
-    }
+VALID_PASSWORDS = {
+    APP_PASSWORD_CLIENT: "client",
+    APP_PASSWORD_TEAM: "team",
+}
 
 # --- Hybrid FFmpeg Handling ---
 if platform.system() == "Windows":  # Local Windows → bundled ffmpeg
