@@ -21,9 +21,12 @@ venv/
 .DS_Store
 Thumbs.db
 
-# Local ffmpeg binaries
+# Folders
+fx_library/
 ffmpeg/
+nltk_data/
 
+# Binaries
 ffprobe
 ffmpeg
 *.exe

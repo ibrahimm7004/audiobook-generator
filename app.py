@@ -14,11 +14,7 @@ from ui.tabs import (
     generate_audio_for_tab
 )
 import nltk
-
-try:
-    nltk.data.find("corpora/wordnet")
-except LookupError:
-    nltk.download("wordnet", quiet=True)
+nltk.data.path.append("nltk_data")  # fix made
 
 
 def create_main_generator_content():
@@ -31,7 +27,7 @@ def create_main_generator_content():
     # Initialize session state with example text but no analysis
     if 'dialogue_text' not in st.session_state:
         st.session_state.dialogue_text = """[Brad] (whispers)(excited): The security system is down. This is our chance. *apartmentcreaks*
-[Arabella] (sighs)(frustrated): I still don't like this plan, Dante. *gasps*
+[Arabella] (sighs)(frustrated): I still don't like this plan, Brad. *gasps*
 [Grandpa Spuds Oxley] (mischievously): Relax, tesoro. What could go wrong? *laughs*
 [Christian] (cold)(calm): Everything. That's what experience teaches you. *growls*"""
 
