@@ -1,12 +1,72 @@
 # parsers/openai_parser.py
 import os
 import re
+import json
+from pathlib import Path
 from typing import List, Tuple, Dict, Any, Optional
 from dataclasses import dataclass
 from openai import OpenAI
 from collections import defaultdict
 from dotenv import load_dotenv
 from audio.utils import get_flat_emotion_tags, normalize_effect_name, SOUND_EFFECTS
+
+# Load configs
+_CONFIGS_DIR = Path(__file__).resolve().parent.parent / "configs"
+
+with open(_CONFIGS_DIR / "emotion_tags.json", "r", encoding="utf-8") as _f:
+    _EMOTION_TAGS_JSON = json.load(_f)
+
+with open(_CONFIGS_DIR / "fx_effects.json", "r", encoding="utf-8") as _f:
+    _FX_EFFECTS_JSON = json.load(_f)
+
+with open(_CONFIGS_DIR / "verb_to_emotion.json", "r", encoding="utf-8") as _f:
+    VERB_TO_EMOTION = json.load(_f)
+
+with open(_CONFIGS_DIR / "adverb_to_emotion.json", "r", encoding="utf-8") as _f:
+    ADVERB_TO_EMOTION = json.load(_f)
+
+# Build allowed emotion set (flat) from all categories in emotion_tags.json
+ALLOWED_EMOTIONS = set()
+for _category_dict in _EMOTION_TAGS_JSON.values():
+    # category dict maps tag -> "[tag]"
+    for _tag in _category_dict.keys():
+        ALLOWED_EMOTIONS.add(_tag)
+
+# Build allowed FX set from fx_effects.json using the canonical "original" names
+ALLOWED_FX = {data.get("original")
+              for data in _FX_EFFECTS_JSON.values() if data.get("original")}
+
+
+def validate_line(line):
+    mapped = []
+    for e in line.get("emotions", []):
+        e_norm = (e or "").strip().lower()
+        if not e_norm:
+            continue
+        if e_norm in ALLOWED_EMOTIONS:
+            mapped.append(e_norm)
+            continue
+        if e_norm in VERB_TO_EMOTION:
+            mapped_val = (VERB_TO_EMOTION[e_norm] or "").strip().lower()
+            if mapped_val in ALLOWED_EMOTIONS:
+                mapped.append(mapped_val)
+                continue
+        if e_norm in ADVERB_TO_EMOTION:
+            mapped_val = (ADVERB_TO_EMOTION[e_norm] or "").strip().lower()
+            if mapped_val in ALLOWED_EMOTIONS:
+                mapped.append(mapped_val)
+    if not mapped:
+        mapped = ["calm"]  # fallback default
+    line["emotions"] = mapped[:2]  # max 2
+
+    fx_value = (line.get("fx") or "").strip().lower()
+    if fx_value not in ALLOWED_FX:
+        line["fx"] = None
+    else:
+        line["fx"] = fx_value
+
+    return line
+
 
 load_dotenv()
 
@@ -50,11 +110,24 @@ class OpenAIParser:
         self.sound_effects = SOUND_EFFECTS
 
     def build_prompt(self, text: str) -> str:
+        # Build constraint strings
+        allowed_emotions_list = ", ".join(sorted(ALLOWED_EMOTIONS))
+        allowed_fx_list = ", ".join(sorted(ALLOWED_FX))
+
         rules = [
             "Reformat the input prose into structured dialogue lines.",
             "Schema: [Character] (emotion1)(emotion2): dialogue *fx*",
             "One complete dialogue per line. Do not add commentary.",
             "Infer speaker names only from the input text (names, pronouns, context). Do not use any predefined list.",
+            # Emotion constraints
+            "Emotions must be 1–2 tags from the ALLOWED_EMOTIONS list below.",
+            "If the text has no explicit emotion, choose the closest one from ALLOWED_EMOTIONS (never omit emotions).",
+            "Normalize speech verbs via VERB_TO_EMOTION and adverbs via ADVERB_TO_EMOTION.",
+            # FX constraints
+            "FX must come only from ALLOWED_FX (exact tag string); if none applies, omit the *fx* tag.",
+            "Never invent new tags for emotions or FX.",
+            f"ALLOWED_EMOTIONS: {allowed_emotions_list}",
+            f"ALLOWED_FX: {allowed_fx_list}",
         ]
 
         if self.include_narration:
@@ -66,7 +139,7 @@ class OpenAIParser:
 
         if self.detect_fx:
             rules.append(
-                "Include sound effects like slam, gasp, crack as *fx* tags.")
+                "Include an *fx* tag only if it exactly matches one from ALLOWED_FX (e.g., *door_slam*).")
 
         # Formatting strictness and narrator parity
         rules.extend([
@@ -80,15 +153,15 @@ class OpenAIParser:
         # Examples
         examples = [
             "Input: Victor stared at the frame. \"Get up!\" he roared, slamming the door.",
-            "Output: [Victor] (angry): Get up! *slam*",
+            "Output: [Victor] (angry): Get up! *door_slam*",
             "",
             "Input: Aria folded her arms. \"You keep breaking things,\" she snapped. \"I'm not cleaning this up.\"",
             "Output: [Aria] (angry): You keep breaking things,",
             "[Aria]: I'm not cleaning this up.",
             "",
             "Input: He looked away. \"Sorry,\" he said softly. The window cracked. \"Did you hear that?\" she whispered.",
-            "Output: [Victor] (gentle): Sorry,",
-            "[Aria] (whispers): Did you hear that? *crack*",
+            "Output: [Victor] (soft): Sorry,",
+            "[Aria] (whispers): Did you hear that? *glass_breaking_windows*",
             "",
         ]
 
@@ -100,7 +173,7 @@ class OpenAIParser:
                 "",
                 # Narration with emotional cue + FX
                 "Input: Noah laughs softly as the door slams.",
-                "Output: [Narrator] (gentle): Noah laughs softly. *slam*",
+                "Output: [Narrator] (soft): Noah laughs softly. *door_slam*",
                 "",
                 # Unknown speaker treated as narrator
                 "Input: The lights went out. \"Who's there?\"",
@@ -130,10 +203,21 @@ class OpenAIParser:
             else "Ignore narration or unattributed lines completely. Only output dialogues spoken by characters."
         )
 
+        allowed_emotions_list = ", ".join(sorted(ALLOWED_EMOTIONS))
+        allowed_fx_list = ", ".join(sorted(ALLOWED_FX))
+        system_constraints = (
+            "Always output 1–2 emotions from ALLOWED_EMOTIONS. "
+            "If text has no explicit emotion, choose the closest one (never omit emotions). "
+            "Normalize speech verbs via VERB_TO_EMOTION and adverbs via ADVERB_TO_EMOTION. "
+            "FX can only come from ALLOWED_FX; if none applies, omit the *fx* tag. "
+            "Never invent new tags. "
+            f"ALLOWED_EMOTIONS: {allowed_emotions_list}. ALLOWED_FX: {allowed_fx_list}."
+        )
+
         response = self.client.responses.create(
             model=self.model,
             input=[
-                {"role": "system", "content": f"You are a strict audiobook dialogue parser. {narrator_policy}"},
+                {"role": "system", "content": f"You are a strict audiobook dialogue parser. {narrator_policy} {system_constraints}"},
                 {"role": "user", "content": prompt}
             ]
         )
@@ -156,9 +240,23 @@ class OpenAIParser:
                 continue
             if not self.include_narration and parsed.character == "Narrator":
                 continue
-            sound_effects = parsed.sound_effects if self.detect_fx else []
+            # Build interim data structure for validation
+            interim = {
+                "character": parsed.character,
+                "text": parsed.text,
+                "emotions": parsed.emotions,
+                # pick first fx if multiple present in line; schema expects single *fx*
+                "fx": (parsed.sound_effects[0] if parsed.sound_effects else None) if self.detect_fx else None,
+            }
 
-            emotion_text = "".join([f"({e})" for e in parsed.emotions])
+            # Validate and normalize
+            validated = validate_line(interim)
+
+            sound_effects = [validated["fx"]] if (
+                self.detect_fx and validated.get("fx")) else []
+
+            # Use validated emotions for output
+            emotion_text = "".join([f"({e})" for e in validated["emotions"]])
             effect_text = "".join([f"*{fx}*" for fx in sound_effects])
             formatted_line = f"[{parsed.character}] {emotion_text}: {parsed.text} {effect_text}".strip(
             )
@@ -168,7 +266,7 @@ class OpenAIParser:
                 "type": "speech",
                 "character": parsed.character,
                 "text": parsed.text,
-                "emotions": parsed.emotions,
+                "emotions": validated["emotions"],
                 "fx": sound_effects,
             })
 
