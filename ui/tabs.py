@@ -41,13 +41,23 @@ def generate_audio_for_tab(text_content: str, tab_prefix: str, analysis_key: str
         st.info(
             f"📊 **Processing:** {speech_count} speech segments, {effect_count} sound effects")
 
-        # Generate audio with progress tracking
+        # Generate audio with batch progress tracking to keep UI responsive
+        batch_progress = st.progress(0)
+        batch_info = st.empty()
+
+        def _on_batch_update(done, total):
+            if total:
+                batch_progress.progress(min(1.0, done / total))
+            batch_info.write(f"Completed {done}/{total} batches")
+
         with st.spinner("Generating audio..."):
             audio_data = generator.process_dialogue(
                 dialogue_sequence,
                 current_voice_assignments,
                 output_type=output_type,
-                project_name=project_name
+                project_name=project_name,
+                batch_size=20,
+                progress_callback=_on_batch_update,
             )
 
         # Display success and download link
@@ -97,19 +107,18 @@ def create_teaser_generator_tab():
             for key in keys_to_clear:
                 if key in st.session_state:
                     del st.session_state[key]
-            st.success("Teaser tab reset!")
-            st.rerun()
+            st.success("Reset completed.")
 
     # Handle emotion/effect additions from sidebar for teaser tab
     if 'emotion_to_add' in st.session_state and st.session_state.get('teaser_text', ''):
         st.session_state.teaser_text += f" {st.session_state.emotion_to_add}"
         del st.session_state.emotion_to_add
-        st.rerun()
+        st.success("Emotion added successfully.")
 
     if 'effect_to_add' in st.session_state and st.session_state.get('teaser_text', ''):
         st.session_state.teaser_text += f" {st.session_state.effect_to_add}"
         del st.session_state.effect_to_add
-        st.rerun()
+        st.success("Effect added successfully.")
 
     # Teaser text input
     teaser_text = st.text_area(
@@ -340,8 +349,7 @@ def create_voice_manager_tab():
                     if loaded_mappings:
                         st.session_state.vm_voice_mappings = loaded_mappings
                         st.session_state.vm_project_name = selected_project
-                        st.success(f"✅ Loaded project: {selected_project}")
-                        st.rerun()
+                        st.info("Project loaded successfully.")
 
     with col3:
         # Save current project
@@ -396,7 +404,6 @@ def create_voice_manager_tab():
                     st.session_state.vm_voice_mappings[new_char_name.strip(
                     )] = voice_id
                     st.success(f"✅ Added {new_char_name} with voice!")
-                    st.rerun()
                 else:
                     st.error("Please enter a character name!")
 
@@ -444,7 +451,7 @@ def create_voice_manager_tab():
                 new_voice_id = all_voice_options[new_voice_selection]
                 if new_voice_id != current_voice_id:
                     st.session_state.vm_voice_mappings[char_name] = new_voice_id
-                    st.rerun()
+                    st.info("Voice updated successfully.")
 
             with col3:
                 if st.button("🗑️", key=f"vm_remove_{char_name}", help=f"Remove {char_name}"):
@@ -453,7 +460,7 @@ def create_voice_manager_tab():
         # Remove characters if requested
         for char_to_remove in characters_to_remove:
             del st.session_state.vm_voice_mappings[char_to_remove]
-            st.rerun()
+            st.success("Character removed.")
 
     else:
         st.info(
@@ -533,38 +540,23 @@ def create_raw_parser_tab(get_known_characters_callable):
         key="raw_parser_input",
     )
 
-    # --- Convert action with loading animation
-    generating = st.session_state.get("raw_is_generating", False)
-
-    cols_btn = st.columns([1, 5])
-    with cols_btn[0]:
-        if generating:
-            st.button("⏳ Generating...", type="primary", use_container_width=True,
-                      key="raw_convert_btn_busy", disabled=True)
+    # --- Convert action without forced reruns
+    if st.button("🔍 Convert Raw → Dialogue", type="primary", use_container_width=True, key="raw_convert_btn"):
+        if not raw_text.strip():
+            st.error("Please paste some raw prose first.")
         else:
-            if st.button("🔍 Convert Raw → Dialogue", type="primary", use_container_width=True, key="raw_convert_btn"):
-                if not raw_text.strip():
-                    st.error("Please paste some raw prose first.")
-                else:
-                    st.session_state["raw_is_generating"] = True
-                    st.rerun()
+            with st.spinner("Generating..."):
+                parser = OpenAIParser(
+                    include_narration=include_narration,
+                    detect_fx=attach_fx
+                )
+                result = parser.convert(raw_text)
 
-    # When flagged, run parser with spinner and then clear flag
-    if st.session_state.get("raw_is_generating"):
-        with st.spinner("Generating..."):
-            parser = OpenAIParser(
-                include_narration=include_narration,
-                detect_fx=attach_fx
-            )
-            result = parser.convert(raw_text)
-
-            st.session_state["raw_last_formatted_text"] = result.formatted_text
-            st.session_state["raw_last_dialogues"] = result.dialogues
-            st.session_state["raw_last_stats"] = result.stats
-            st.session_state["raw_parsed_ready"] = True
-
-        st.session_state["raw_is_generating"] = False
-        st.rerun()
+                st.session_state["raw_last_formatted_text"] = result.formatted_text
+                st.session_state["raw_last_dialogues"] = result.dialogues
+                st.session_state["raw_last_stats"] = result.stats
+                st.session_state["raw_parsed_ready"] = True
+            st.success("✅ Parsed successfully.")
 
     # --- Results area: rendered whenever we have a parsed result in session
     if st.session_state.get("raw_parsed_ready") and st.session_state.get("raw_last_formatted_text"):
@@ -595,12 +587,12 @@ def create_raw_parser_tab(get_known_characters_callable):
                 # 2) Clear Main analysis so user re-parses there (optional)
                 for k in ("paste_text_analysis", "paste_formatted_dialogue", "paste_parsed_dialogues", "paste_voice_assignments"):
                     st.session_state.pop(k, None)
-                # 3) Switch tabs and rerun
+                # 3) Switch tabs logically
                 st.session_state.current_tab = "main"
-                st.rerun()
+                st.info("Parsed output sent to Main Generator.")
 
         with colB:
             if st.button("🗑 Reset Parsed Output", key="raw_reset", type="secondary", use_container_width=True):
                 for k in ("raw_last_formatted_text", "raw_last_dialogues", "raw_last_stats", "raw_parsed_ready"):
                     st.session_state.pop(k, None)
-                st.rerun()
+                st.success("Reset completed.")

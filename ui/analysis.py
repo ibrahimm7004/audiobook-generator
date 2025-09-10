@@ -130,6 +130,10 @@ def create_voice_management_interface(analysis: ParseAnalysis, tab_prefix: str):
                 label_visibility="collapsed"
             )
 
+            # Ensure unknown characters are tracked
+            if character not in voice_manager.voice_assignments:
+                voice_manager.voice_assignments[character] = {"voice_id": None}
+
             # Update voice assignment if changed
             new_voice_id = all_voices[selected_voice]
             if new_voice_id != current_voice:
@@ -139,7 +143,15 @@ def create_voice_management_interface(analysis: ParseAnalysis, tab_prefix: str):
         with col3:
             st.caption(f"Lines: {usage_count}")
 
+    # Defer reruns: mark pending and require explicit apply
+    pending_key = f"{tab_prefix}_voice_changes_pending"
     if voice_assignments_changed:
-        st.rerun()
+        st.session_state[pending_key] = True
+
+    if st.session_state.get(pending_key):
+        st.info("Voice changes pending. Click 'Apply Voice Changes' to refresh.")
+        if st.button("✅ Apply Voice Changes", key=f"{tab_prefix}_apply_voice_changes"):
+            st.session_state[pending_key] = False
+            st.rerun()
 
     return voice_manager.voice_assignments

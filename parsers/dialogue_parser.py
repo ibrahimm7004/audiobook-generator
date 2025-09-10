@@ -5,9 +5,10 @@ from audio.utils import normalize_effect_name
 
 
 class DialogueParser:
-    def __init__(self):
-        character_voices = CHARACTER_VOICES
-        emotion_tags = EMOTION_TAGS
+    def __init__(self, character_voices=None, emotion_tags=None):
+        # Ensure instance attributes are set for downstream usage
+        self.character_voices = character_voices if character_voices is not None else CHARACTER_VOICES
+        self.emotion_tags = emotion_tags if emotion_tags is not None else EMOTION_TAGS
 
     def parse_dialogue(self, dialogue_text, voice_assignments=None):
         """Parse dialogue text in format: [Character] (emotion1)(emotion2): Text *sound_effect*"""

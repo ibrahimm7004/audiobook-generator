@@ -167,106 +167,125 @@ class DialogueAudioGenerator:
             return AudioSegment.silent(duration=100)
         return segment.set_sample_width(2).set_channels(2).set_frame_rate(44100)
 
-    def process_dialogue(self, dialogue_data, voice_assignments=None, output_type="chapter", project_name="project"):
-        """Process the entire dialogue with TTS and sound effects"""
-        audio_segments = []
+    def process_dialogue(self, dialogue_data, voice_assignments=None, output_type="chapter", project_name="project", batch_size: int = 20, progress_callback=None):
+        """Process the entire dialogue with TTS and sound effects in batches to keep UI responsive.
 
+        progress_callback (optional): callable accepting (completed_batches, total_batches)
+        """
         # Use custom voice assignments if provided
         if voice_assignments:
             working_voices = voice_assignments.copy()
         else:
             working_voices = self.character_voices
 
-        # Create containers for progress tracking
-        progress_container = st.container()
+        total_items = len(dialogue_data)
+        total_batches = (total_items + batch_size -
+                         1) // batch_size if total_items > 0 else 0
 
+        # Streamlit progress elements
+        progress_container = st.container()
         with progress_container:
             progress_bar = st.progress(0)
             status_text = st.empty()
 
-        for i, entry in enumerate(dialogue_data):
-            progress = (i + 1) / len(dialogue_data)
-            progress_bar.progress(progress)
+        # Prepare incremental final audio (start silent)
+        final_audio = AudioSegment.silent(duration=0)
 
-            if entry["type"] == "speech":
-                char = entry.get("character", "Unknown")
-                text_preview = entry["text"][:50] + \
-                    ("..." if len(entry["text"]) > 50 else "")
-                status_text.text(
-                    f"🎤 Generating speech for {char}: {text_preview}")
+        def _append_segment(target: AudioSegment, segment: AudioSegment) -> AudioSegment:
+            if segment and len(segment) > 0:
+                return target + self._ensure_compatible(segment)
+            return target
 
-                # Use custom voice assignment if available
-                voice_info = working_voices.get(char) \
-                    or working_voices.get(char.lower()) \
-                    or entry.get("voice_id")
+        completed_items = 0
+        completed_batches = 0
 
-                # Extract plain voice id string from various representations
-                if isinstance(voice_info, dict):
-                    voice_id = voice_info.get("voice_id") or voice_info.get(
-                        "id") or voice_info.get("voiceId")
-                else:
-                    voice_id = voice_info
+        last_progress_items = 0
+        progress_step = max(5, batch_size // 2)  # throttle UI updates
 
-                if not voice_id:
-                    voice_id = st.session_state.get(
-                        "default_custom_voice", "default_voice_id_here")
+        for batch_start in range(0, total_items, batch_size):
+            batch = dialogue_data[batch_start:batch_start + batch_size]
+            batch_segments = []
 
-                # Generate speech with retry mechanism
-                max_retries = 3
-                audio = None
-                for attempt in range(max_retries):
+            for entry in batch:
+                if entry["type"] == "speech":
+                    char = entry.get("character", "Unknown")
+                    text_preview = entry["text"][:50] + \
+                        ("..." if len(entry["text"]) > 50 else "")
+                    status_text.text(
+                        f"🎤 Generating speech for {char}: {text_preview}")
+
+                    voice_info = working_voices.get(char) or working_voices.get(
+                        char.lower()) or entry.get("voice_id")
+                    if isinstance(voice_info, dict):
+                        voice_id = voice_info.get("voice_id") or voice_info.get(
+                            "id") or voice_info.get("voiceId")
+                    else:
+                        voice_id = voice_info
+                    if not voice_id:
+                        voice_id = st.session_state.get(
+                            "default_custom_voice", "default_voice_id_here")
+
+                    # Retry TTS a few times
+                    max_retries = 3
+                    audio = None
+                    for attempt in range(max_retries):
+                        try:
+                            audio = self.generate_speech(
+                                voice_id=voice_id,
+                                text=entry["text"],
+                                model_id=entry.get("model_id", "eleven_v3"),
+                            )
+                            if len(audio) > 0:
+                                break
+                        except Exception as e:
+                            if attempt == max_retries - 1:
+                                st.warning(
+                                    f"Failed to generate speech after {max_retries} attempts: {e}")
+                                audio = AudioSegment.silent(duration=1000)
+                            else:
+                                time.sleep(0.2)
+
+                    if audio:
+                        batch_segments.append(audio)
+
+                elif entry["type"] == "sound_effect":
+                    status_text.text(
+                        f"🔊 Adding sound effect: {entry['effect_name']}")
+                    effect_audio = self.load_sound_effect(entry["effect_name"])
+                    batch_segments.append(effect_audio)
+
+                elif entry["type"] == "pause":
+                    duration = entry.get("duration", 500)
+                    batch_segments.append(
+                        AudioSegment.silent(duration=duration))
+
+            # Incrementally merge this batch into final audio to avoid RAM spikes
+            status_text.text("🔄 Merging batch audio segments...")
+            try:
+                for seg in batch_segments:
+                    final_audio = _append_segment(final_audio, seg)
+            except Exception as e:
+                st.error(f"Error merging batch: {e}")
+
+            # Update counters and progress (throttled)
+            completed_items += len(batch)
+            completed_batches += 1
+            if (completed_items - last_progress_items) >= progress_step or completed_items == total_items:
+                progress = completed_items / total_items if total_items else 1.0
+                progress_bar.progress(min(1.0, progress))
+                if progress_callback:
                     try:
-                        audio = self.generate_speech(
-                            voice_id=voice_id,
-                            text=entry["text"],
-                            model_id=entry.get("model_id", "eleven_v3")
-                        )
-                        if len(audio) > 0:  # Successfully generated audio
-                            break
-                    except Exception as e:
-                        if attempt == max_retries - 1:
-                            st.warning(
-                                f"Failed to generate speech after {max_retries} attempts: {e}")
-                            audio = AudioSegment.silent(duration=1000)
-                        else:
-                            time.sleep(0.5)  # Wait before retry
+                        progress_callback(completed_batches, total_batches)
+                    except Exception:
+                        pass
+                last_progress_items = completed_items
 
-                if audio:
-                    audio_segments.append(audio)
-
-            elif entry["type"] == "sound_effect":
-                status_text.text(
-                    f"🔊 Adding sound effect: {entry['effect_name']}")
-                effect_audio = self.load_sound_effect(entry["effect_name"])
-                audio_segments.append(effect_audio)
-
-            elif entry["type"] == "pause":
-                duration = entry.get("duration", 500)
-                silence = AudioSegment.silent(duration=duration)
-                audio_segments.append(silence)
-
-            # Small delay to show progress and ensure proper processing
-            time.sleep(0.1)
-
-        status_text.text("🔄 Merging audio segments...")
-
-        # Merge audio segments with error handling
-        try:
-            if audio_segments:
-                final_audio = self._ensure_compatible(audio_segments[0])
-                for segment in audio_segments[1:]:
-                    if segment and len(segment) > 0:
-                        final_audio = final_audio + \
-                            self._ensure_compatible(segment)
-            else:
-                final_audio = AudioSegment.silent(duration=1000)
-        except Exception as e:
-            st.error(f"Error merging audio segments: {e}")
-            final_audio = AudioSegment.silent(duration=1000)
+            # Slightly longer sleep to reduce heartbeat pressure
+            time.sleep(0.05)
 
         status_text.text("✨ Finalizing audio...")
 
-        # After merging segments into final_audio:
+        # Post-process final audio
         try:
             final_audio = self.apply_post_processing(final_audio)
         except Exception as e:
@@ -277,14 +296,10 @@ class DialogueAudioGenerator:
             audio_buffer = io.BytesIO()
             final_audio.export(audio_buffer, format="mp3", bitrate="128k")
             audio_data = audio_buffer.getvalue()
-
-            # Save to organized folder structure
             self._save_to_organized_folder(
                 audio_data, output_type, project_name)
-
         except Exception as e:
             st.error(f"Error exporting audio: {e}")
-            # Create minimal audio file as fallback
             audio_buffer = io.BytesIO()
             AudioSegment.silent(duration=1000).export(
                 audio_buffer, format="mp3")

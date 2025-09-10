@@ -2,8 +2,10 @@ import re
 from typing import List, Dict, Optional, Tuple
 from collections import defaultdict
 from dataclasses import dataclass
+import streamlit as st
 from audio.utils import normalize_effect_name, SOUND_EFFECTS
 from audio.utils import get_flat_character_voices, get_flat_emotion_tags
+import time
 
 
 @dataclass
@@ -29,6 +31,45 @@ class ParseAnalysis:
     total_lines: int
     dialogue_lines: int
 
+    def merge(self, other: "ParseAnalysis") -> None:
+        """Merge another ParseAnalysis into this one in-place."""
+        for k, v in other.characters_found.items():
+            self.characters_found[k] = self.characters_found.get(k, 0) + v
+        for k, v in other.emotions_found.items():
+            self.emotions_found[k] = self.emotions_found.get(k, 0) + v
+        for k, v in other.sound_effects_found.items():
+            self.sound_effects_found[k] = self.sound_effects_found.get(
+                k, 0) + v
+
+        # Union unsupported lists
+        self_uch = set(self.unsupported_characters)
+        other_uch = set(other.unsupported_characters)
+        self.unsupported_characters = list(self_uch.union(other_uch))
+
+        self_uem = set(self.unsupported_emotions)
+        other_uem = set(other.unsupported_emotions)
+        self.unsupported_emotions = list(self_uem.union(other_uem))
+
+        self_use = set(self.unsupported_sound_effects)
+        other_use = set(other.unsupported_sound_effects)
+        self.unsupported_sound_effects = list(self_use.union(other_use))
+
+        self.total_lines += other.total_lines
+        self.dialogue_lines += other.dialogue_lines
+
+    @classmethod
+    def empty(cls) -> "ParseAnalysis":
+        return cls(
+            characters_found={},
+            emotions_found={},
+            sound_effects_found={},
+            unsupported_characters=[],
+            unsupported_emotions=[],
+            unsupported_sound_effects=[],
+            total_lines=0,
+            dialogue_lines=0,
+        )
+
 
 class TextParser:
     """Advanced text parser for various dialogue formats"""
@@ -39,8 +80,10 @@ class TextParser:
         self.sound_effects = SOUND_EFFECTS
 
     def analyze_text(self, text: str) -> ParseAnalysis:
-        """Analyze text and provide comprehensive statistics"""
+        """Analyze text and provide comprehensive statistics (batched with progress)."""
         lines = text.strip().split('\n')
+        total_lines = len(lines)
+
         characters_found = defaultdict(int)
         emotions_found = defaultdict(int)
         sound_effects_found = defaultdict(int)
@@ -49,32 +92,45 @@ class TextParser:
         unsupported_sound_effects = set()
         dialogue_lines = 0
 
-        for line_num, line in enumerate(lines, 1):
-            line = line.strip()
-            if not line or line.startswith('#'):
-                continue
+        # Batch processing to keep UI responsive for large inputs
+        batch_size = 20
+        total_batches = (total_lines + batch_size -
+                         1) // batch_size if total_lines > 0 else 0
+        progress_bar = st.progress(0) if total_batches > 1 else None
 
-            # Try different dialogue formats
-            parsed = self._parse_line_flexible(line)
-            if parsed:
-                dialogue_lines += 1
+        processed_lines = 0
+        for batch_index in range(0, total_lines, batch_size):
+            chunk = lines[batch_index:batch_index + batch_size]
+            for idx, raw_line in enumerate(chunk, start=batch_index + 1):
+                line = raw_line.strip()
+                if not line or line.startswith('#'):
+                    continue
 
-                # Count character usage
-                characters_found[parsed.character] += 1
-                if parsed.character not in self.character_voices:
-                    unsupported_characters.add(parsed.character)
+                parsed = self._parse_line_flexible(line)
+                if parsed:
+                    dialogue_lines += 1
 
-                # Count emotions
-                for emotion in parsed.emotions:
-                    emotions_found[emotion] += 1
-                    if emotion not in self.emotion_tags:
-                        unsupported_emotions.add(emotion)
+                    # Count character usage
+                    characters_found[parsed.character] += 1
+                    if parsed.character not in self.character_voices:
+                        unsupported_characters.add(parsed.character)
 
-                for effect in parsed.sound_effects:
-                    sound_effects_found[effect] += 1
-                    norm_effect = normalize_effect_name(effect)
-                    if norm_effect not in self.sound_effects:
-                        unsupported_sound_effects.add(effect)
+                    # Count emotions
+                    for emotion in parsed.emotions:
+                        emotions_found[emotion] += 1
+                        if emotion not in self.emotion_tags:
+                            unsupported_emotions.add(emotion)
+
+                    # Count sound effects
+                    for effect in parsed.sound_effects:
+                        sound_effects_found[effect] += 1
+                        norm_effect = normalize_effect_name(effect)
+                        if norm_effect not in self.sound_effects:
+                            unsupported_sound_effects.add(effect)
+
+            processed_lines += len(chunk)
+            if progress_bar is not None and total_lines:
+                progress_bar.progress(min(1.0, processed_lines / total_lines))
 
         return ParseAnalysis(
             characters_found=dict(characters_found),
@@ -83,7 +139,7 @@ class TextParser:
             unsupported_characters=list(unsupported_characters),
             unsupported_emotions=list(unsupported_emotions),
             unsupported_sound_effects=list(unsupported_sound_effects),
-            total_lines=len(lines),
+            total_lines=total_lines,
             dialogue_lines=dialogue_lines
         )
 
@@ -183,3 +239,90 @@ class TextParser:
                 formatted_lines.append(f"# UNPARSED: {line}")
 
         return '\n'.join(formatted_lines), parsed_dialogues
+
+    # Internal helper to analyze a list of lines and return a partial ParseAnalysis
+    def _analyze_lines(self, lines: List[str]) -> ParseAnalysis:
+        characters_found = defaultdict(int)
+        emotions_found = defaultdict(int)
+        sound_effects_found = defaultdict(int)
+        unsupported_characters = set()
+        unsupported_emotions = set()
+        unsupported_sound_effects = set()
+        dialogue_lines = 0
+
+        for raw_line in lines:
+            line = raw_line.strip()
+            if not line or line.startswith('#'):
+                continue
+
+            parsed = self._parse_line_flexible(line)
+            if not parsed:
+                continue
+
+            dialogue_lines += 1
+            characters_found[parsed.character] += 1
+            if parsed.character not in self.character_voices:
+                unsupported_characters.add(parsed.character)
+
+            for emotion in parsed.emotions:
+                emotions_found[emotion] += 1
+                if emotion not in self.emotion_tags:
+                    unsupported_emotions.add(emotion)
+
+            for effect in parsed.sound_effects:
+                sound_effects_found[effect] += 1
+                norm_effect = normalize_effect_name(effect)
+                if norm_effect not in self.sound_effects:
+                    unsupported_sound_effects.add(effect)
+
+        return ParseAnalysis(
+            characters_found=dict(characters_found),
+            emotions_found=dict(emotions_found),
+            sound_effects_found=dict(sound_effects_found),
+            unsupported_characters=list(unsupported_characters),
+            unsupported_emotions=list(unsupported_emotions),
+            unsupported_sound_effects=list(unsupported_sound_effects),
+            total_lines=len(lines),
+            dialogue_lines=dialogue_lines,
+        )
+
+
+# Cached wrapper for analysis to avoid recomputation on identical text
+@st.cache_data
+def cached_analyze_text(text: str) -> ParseAnalysis:
+    parser = TextParser()
+    return parser.analyze_text(text)
+
+
+def batched_analyze_text(text: str, batch_size: int = 20) -> ParseAnalysis:
+    """Analyze text in batches with live progress updates to keep UI responsive."""
+    parser = TextParser()
+    lines = text.strip().split('\n')
+    total = len(lines)
+    if total == 0:
+        return ParseAnalysis.empty()
+
+    progress_bar = st.progress(0)
+    status = st.empty()
+
+    result = ParseAnalysis.empty()
+    processed = 0
+
+    last_update_processed = 0
+    update_every = max(10, batch_size)  # throttle UI updates
+
+    for start in range(0, total, batch_size):
+        chunk = lines[start:start + batch_size]
+        partial = parser._analyze_lines(chunk)
+        result.merge(partial)
+
+        processed += len(chunk)
+        if total and (processed - last_update_processed) >= update_every:
+            progress_bar.progress(min(1.0, processed / total))
+            status.text(f"Analyzing... {processed}/{total} lines")
+            last_update_processed = processed
+
+    # Final UI update
+    progress_bar.progress(1.0)
+    status.text("Analysis complete")
+    return result

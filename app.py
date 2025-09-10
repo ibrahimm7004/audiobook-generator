@@ -1,8 +1,9 @@
+from utils.text_normalizer import normalize_text
 import streamlit as st
 from ui.auth import check_password
 from ui.sidebar import create_navigation_sidebar
 from ui.upload import create_file_upload_interface
-from parsers.text_parser import TextParser
+from parsers.text_parser import TextParser, cached_analyze_text, batched_analyze_text
 from parsers.openai_parser import OpenAIParser
 from audio.utils import get_flat_character_voices
 from ui.analysis import display_analysis_results, create_voice_management_interface
@@ -51,59 +52,59 @@ def create_main_generator_content():
                 key="main_project_name"
             )
 
-        # Handle emotion/effect additions from sidebar for paste tab
+        # Handle emotion/effect additions from sidebar for paste tab (no rerun)
         if 'emotion_to_add' in st.session_state:
             st.session_state.dialogue_text += f" {st.session_state.emotion_to_add}"
             del st.session_state.emotion_to_add
-            st.rerun()
+            st.success("Emotion added successfully.")
 
         if 'effect_to_add' in st.session_state:
             st.session_state.dialogue_text += f" {st.session_state.effect_to_add}"
             del st.session_state.effect_to_add
-            st.rerun()
+            st.success("Effect added successfully.")
 
         paste_text = st.text_area(
             "Paste your dialogue text here:",
             value=st.session_state.dialogue_text,
             height=400,
             placeholder="""Supported formats:
-[Character] (emotion): Dialogue text *sound_effect*
-Character: Dialogue text
-"Dialogue text," said Character.
-Character said, "Dialogue text."
+                            [Character] (emotion): Dialogue text *sound_effect*
+                            Character: Dialogue text
+                            "Dialogue text," said Character.
+                            Character said, "Dialogue text."
 
-Or paste raw text from books/stories...""",
+                            Or paste raw text from books/stories...""",
             key="paste_text_input"
         )
 
-        # Update session state when text changes
-        if paste_text != st.session_state.dialogue_text:
-            st.session_state.dialogue_text = paste_text
+        # Normalize only when raw widget value changes to reduce reruns
+        if paste_text != st.session_state.get("_last_raw_paste", ""):
+            safe_paste_text = normalize_text(paste_text)
+            st.session_state.dialogue_text = safe_paste_text
+            st.session_state["_last_raw_paste"] = paste_text
 
         # Parse button for paste tab
         if st.button("🔍 Parse & Analyze Text", type="secondary", use_container_width=True, key="paste_parse_btn"):
+            st.session_state["do_parse_paste"] = True
+
+        if st.session_state.get("do_parse_paste"):
             if not st.session_state.dialogue_text.strip():
                 st.error("Please enter some text to parse!")
             else:
-                # Initialize parser
                 parser = TextParser()
+                analysis = batched_analyze_text(st.session_state.dialogue_text)
 
-                # Analyze the text
-                with st.spinner("Analyzing text..."):
-                    analysis = parser.analyze_text(
-                        st.session_state.dialogue_text)
-
-                # Store analysis in session state
                 st.session_state.paste_text_analysis = analysis
-
-                # Parse and format the text
                 formatted_text, parsed_dialogues = parser.parse_to_dialogue_format(
-                    st.session_state.dialogue_text)
+                    st.session_state.dialogue_text
+                )
                 st.session_state.paste_formatted_dialogue = formatted_text
                 st.session_state.paste_parsed_dialogues = parsed_dialogues
 
                 st.success("✅ Text analysis complete!")
-                st.rerun()
+
+            # reset flag to prevent loop
+            st.session_state["do_parse_paste"] = False
 
         # Display analysis results for paste tab
         if 'paste_text_analysis' in st.session_state:
@@ -210,16 +211,16 @@ Or paste raw text from books/stories...""",
                 key="upload_project_name"
             )
 
-        # Handle emotion/effect additions from sidebar for upload tab
+        # Handle emotion/effect additions from sidebar for upload tab (no rerun)
         if 'emotion_to_add' in st.session_state and st.session_state.upload_dialogue_text:
             st.session_state.upload_dialogue_text += f" {st.session_state.emotion_to_add}"
             del st.session_state.emotion_to_add
-            st.rerun()
+            st.success("Emotion added successfully.")
 
         if 'effect_to_add' in st.session_state and st.session_state.upload_dialogue_text:
             st.session_state.upload_dialogue_text += f" {st.session_state.effect_to_add}"
             del st.session_state.effect_to_add
-            st.rerun()
+            st.success("Effect added successfully.")
 
         upload_text = st.text_area(
             "Edit the uploaded text here:",
@@ -229,33 +230,35 @@ Or paste raw text from books/stories...""",
             key="upload_text_input"
         )
 
-        # Update session state when upload text changes
-        if upload_text != st.session_state.upload_dialogue_text:
-            st.session_state.upload_dialogue_text = upload_text
+        # Normalize only when raw widget value changes to reduce reruns
+        if upload_text != st.session_state.get("_last_raw_upload", ""):
+            safe_upload_text = normalize_text(upload_text)
+            st.session_state.upload_dialogue_text = safe_upload_text
+            st.session_state["_last_raw_upload"] = upload_text
 
         # Parse button for upload tab
         if st.button("🔍 Parse & Analyze Text", type="secondary", use_container_width=True, key="upload_parse_btn"):
+            st.session_state["do_parse_upload"] = True
+
+        if st.session_state.get("do_parse_upload"):
             if not st.session_state.upload_dialogue_text.strip():
                 st.error("Please enter some text to parse!")
             else:
-                # Initialize parser
                 parser = TextParser()
-
-                # Analyze the text
-                with st.spinner("Analyzing text..."):
-                    analysis = parser.analyze_text(
-                        st.session_state.upload_dialogue_text)
-
-                # Store analysis in session state
-                st.session_state.upload_text_analysis = analysis
-
-                # Parse and format the text
-                formatted_text, parsed_dialogues = parser.parse_to_dialogue_format(
+                analysis = batched_analyze_text(
                     st.session_state.upload_dialogue_text)
+
+                st.session_state.upload_text_analysis = analysis
+                formatted_text, parsed_dialogues = parser.parse_to_dialogue_format(
+                    st.session_state.upload_dialogue_text
+                )
                 st.session_state.upload_formatted_dialogue = formatted_text
                 st.session_state.upload_parsed_dialogues = parsed_dialogues
 
                 st.success("✅ Text analysis complete!")
+
+            # reset flag to prevent loop
+            st.session_state["do_parse_upload"] = False
 
         # Display analysis results for upload tab
         if 'upload_text_analysis' in st.session_state:
@@ -338,7 +341,7 @@ Or paste raw text from books/stories...""",
 
 def main():
     st.set_page_config(
-        page_title="Audiobook machine",
+        page_title="AUDIOMACHINE",
         page_icon="🎭",
         layout="wide",
         initial_sidebar_state="expanded"
@@ -389,6 +392,13 @@ def main():
     if not check_password():
         return
 
+    # 🔄 Add Reset Session button in sidebar
+    st.sidebar.markdown("### 🛠️ Utilities")
+    if st.sidebar.button("🔄 Reset Session State"):
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
+        st.rerun()
+
     # Create enhanced sidebar with navigation
     create_navigation_sidebar()
 
@@ -425,6 +435,9 @@ def main():
         Professional Audiobook Production Suite
     </div>
     """, unsafe_allow_html=True)
+
+    # Keepalive heartbeat to stabilize websocket connections
+    st.empty().markdown("<!-- heartbeat -->")
 
 
 if __name__ == "__main__":

@@ -17,7 +17,7 @@ def check_password():
             text-align: center;
             margin: 2rem 0;
         ">
-            <h1 style="color: white; margin-bottom: 1rem;">🎭 Audiomachine project</h1>
+            <h1 style="color: white; margin-bottom: 1rem;">🎭 AUDIOMACHINE</h1>
             <p style="color: white; opacity: 0.9;">Professional Audiobook Production Suite</p>
         </div>
         """, unsafe_allow_html=True)
