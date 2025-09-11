@@ -4,24 +4,30 @@ import shutil
 from pathlib import Path
 from pydub import AudioSegment
 import streamlit as st
-from dotenv import load_dotenv
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
-# --- Hybrid Secrets Handling ---
-if platform.system() == "Windows":  # Local
-    load_dotenv()
+# --- Secrets Handling (prefer st.secrets) ---
+ELEVENLABS_API_KEY = st.secrets.get("elevenlabs", {}).get(
+    "ELEVENLABS_API_KEY") or os.getenv("ELEVENLABS_API_KEY")
+APP_PASSWORD_CLIENT = st.secrets.get("app", {}).get(
+    "APP_PASSWORD_CLIENT") or os.getenv("APP_PASSWORD_CLIENT")
+APP_PASSWORD_TEAM = st.secrets.get("app", {}).get(
+    "APP_PASSWORD_TEAM") or os.getenv("APP_PASSWORD_TEAM")
 
-# Always pull from env vars first
-ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
-APP_PASSWORD_CLIENT = os.getenv("APP_PASSWORD_CLIENT")
-APP_PASSWORD_TEAM = os.getenv("APP_PASSWORD_TEAM")
+OPENAI_API_KEY = st.secrets.get("openai", {}).get(
+    "OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
 
-# Fallback: if not found, try st.secrets (only works on Streamlit Cloud)
-if not ELEVENLABS_API_KEY and "ELEVENLABS_API_KEY" in st.secrets:
-    ELEVENLABS_API_KEY = st.secrets["ELEVENLABS_API_KEY"]
-    APP_PASSWORD_CLIENT = st.secrets["APP_PASSWORD_CLIENT"]
-    APP_PASSWORD_TEAM = st.secrets["APP_PASSWORD_TEAM"]
+# AWS settings from Streamlit secrets (fallback to env for local/dev)
+AWS_ACCESS_KEY_ID = st.secrets.get("aws", {}).get(
+    "AWS_ACCESS_KEY_ID") or os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = st.secrets.get("aws", {}).get(
+    "AWS_SECRET_ACCESS_KEY") or os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_DEFAULT_REGION = st.secrets.get("aws", {}).get(
+    "AWS_DEFAULT_REGION") or os.getenv("AWS_DEFAULT_REGION") or os.getenv("AWS_REGION")
+AWS_S3_BUCKET = st.secrets.get("aws", {}).get(
+    "AWS_S3_BUCKET") or os.getenv("AWS_S3_BUCKET") or os.getenv("S3_BUCKET")
+
 
 VALID_PASSWORDS = {
     APP_PASSWORD_CLIENT: "client",

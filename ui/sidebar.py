@@ -29,7 +29,8 @@ def create_navigation_sidebar():
             ("teaser", "🎬 Teaser Generator", "TikTok/Shorts teasers"),
             ("emotion", "😊 Emotion Preview", "Test voices with emotions"),
             ("voice_manager", "🎭 Voice Manager", "Manage character voices"),
-            ("raw", "📚 Raw Parser", "Convert raw prose to dialogue")
+            ("raw", "📚 Raw Parser", "Convert raw prose to dialogue"),
+            ("history", "🕓 History", "Completed and in-progress projects")
         ]
 
         for tab_key, tab_label, tab_help in nav_buttons:

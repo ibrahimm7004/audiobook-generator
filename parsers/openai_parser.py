@@ -9,6 +9,8 @@ from openai import OpenAI
 from collections import defaultdict
 from dotenv import load_dotenv
 from audio.utils import get_flat_emotion_tags, normalize_effect_name, SOUND_EFFECTS
+from settings import OPENAI_API_KEY
+
 
 # Load configs
 _CONFIGS_DIR = Path(__file__).resolve().parent.parent / "configs"
@@ -102,7 +104,7 @@ class ParseAnalysis:
 
 class OpenAIParser:
     def __init__(self, model: str = "gpt-5-mini", include_narration: bool = True, detect_fx: bool = True):
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.client = OpenAI(api_key=OPENAI_API_KEY)
         self.model = model
         self.include_narration = include_narration
         self.detect_fx = detect_fx

@@ -14,6 +14,7 @@ from ui.tabs import (
     create_raw_parser_tab,
     generate_audio_for_tab
 )
+from ui.history import create_history_tab
 import nltk
 nltk.data.path.append("nltk_data")  # fix made
 
@@ -426,6 +427,9 @@ def main():
 
         create_raw_parser_tab(_get_known)
 
+    elif current_tab == "history":
+        create_history_tab()
+
     # Footer
     st.markdown("---")
     st.markdown("""
@@ -436,8 +440,7 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
-    # Keepalive heartbeat to stabilize websocket connections
-    st.empty().markdown("<!-- heartbeat -->")
+    # Removed heartbeat markup
 
 
 if __name__ == "__main__":
