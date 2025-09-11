@@ -7,3 +7,5 @@ python-dotenv
 ffmpeg-python
 nltk
 openai==1.106.1
+boto3
+tenacity
