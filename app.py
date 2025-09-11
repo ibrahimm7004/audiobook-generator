@@ -15,6 +15,11 @@ from ui.tabs import (
     generate_audio_for_tab
 )
 from ui.history import create_history_tab
+from utils.chunking import chunk_text
+from audio.batch_generator import ResumableBatchGenerator
+from utils.state_manager import ProjectStateManager
+from utils.s3_utils import s3_generate_presigned_url, s3_get_bytes
+from ui.history import create_history_tab
 import nltk
 nltk.data.path.append("nltk_data")  # fix made
 
@@ -161,14 +166,8 @@ def create_main_generator_content():
             if not project_name.strip():
                 st.error("Please enter a project name!")
             else:
-                generate_audio_for_tab(
-                    st.session_state.dialogue_text,
-                    "paste",
-                    "paste_text_analysis",
-                    "paste_voice_assignments",
-                    output_type="chapter",
-                    project_name=project_name
-                )
+                _run_resumable_generation(
+                    st.session_state.dialogue_text, project_name)
 
         # Format guide
         with st.expander("📋 Format Guide & Examples"):
@@ -330,14 +329,45 @@ def create_main_generator_content():
             if not upload_project_name.strip():
                 st.error("Please enter a project name!")
             else:
-                generate_audio_for_tab(
-                    st.session_state.upload_dialogue_text,
-                    "upload",
-                    "upload_text_analysis",
-                    "upload_voice_assignments",
-                    output_type="chapter",
-                    project_name=upload_project_name
-                )
+                _run_resumable_generation(
+                    st.session_state.upload_dialogue_text, upload_project_name)
+
+
+def _run_resumable_generation(full_text: str, project_name: str):
+    import streamlit as st
+    st.markdown("### 🎬 Generate Audio (Resumable)")
+    tasks = chunk_text(project_name, full_text, max_chars=2000)
+    total = len(tasks)
+    if total == 0:
+        st.error("No text to process.")
+        return
+    prog = st.progress(0)
+    info = st.empty()
+
+    def _cb(done: int, tot: int):
+        prog.progress(min(1.0, done / max(1, tot)))
+        info.text(f"Processed {done}/{tot} chunks")
+
+    gen = ResumableBatchGenerator(project_name, max_workers=2)
+    with st.spinner("Generating audio in chunks..."):
+        gen.run(full_text, progress_cb=_cb)
+    # Success UI: show player and download for consolidated S3 file
+    audio_key = f"projects/{project_name}/consolidated.mp3"
+    url = s3_generate_presigned_url(audio_key, expires_seconds=3600)
+    data = None
+    try:
+        data = s3_get_bytes(audio_key)
+    except Exception:
+        data = None
+
+    st.success("✅ Audio generated successfully!")
+    if data:
+        st.audio(data, format="audio/mp3")
+    elif url:
+        st.audio(url)
+
+    if url:
+        st.markdown(f"[📥 Download Audio File]({url})")
 
 
 def main():
