@@ -7,6 +7,7 @@ from typing import Callable, Dict, List, Optional, Tuple
 
 from elevenlabs import ElevenLabs
 from pydub import AudioSegment, effects
+from pydub.silence import detect_nonsilent
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from utils.chunking import chunk_text
@@ -135,6 +136,20 @@ class ResumableBatchGenerator:
         out = io.BytesIO()
         audio.export(out, format="mp3", bitrate="128k")
         return out.getvalue()
+
+    def _trim_silence(self, seg: AudioSegment, silence_thresh: float = -45.0, chunk_size_ms: int = 10, keep_ms: int = 50) -> AudioSegment:
+        if not seg or len(seg) == 0:
+            return seg
+        try:
+            intervals = detect_nonsilent(
+                seg, min_silence_len=chunk_size_ms, silence_thresh=silence_thresh)
+            if not intervals:
+                return seg
+            start = max(0, intervals[0][0] - keep_ms)
+            end = min(len(seg), intervals[-1][1] + keep_ms)
+            return seg[start:end]
+        except Exception:
+            return seg
 
     def _get_voice_assignments(self) -> Dict[str, str]:
         # Prefer user session voice assignments; fallback to flattened defaults
@@ -276,14 +291,21 @@ class ResumableBatchGenerator:
                 elif entry.get("type") == "sound_effect":
                     fx = gen_fx_loader.load_sound_effect(
                         entry.get("effect_name"))
-                    seg = fx if fx else AudioSegment.silent(duration=200)
+                    if fx:
+                        fx = self._trim_silence(fx)
+                        seg = self._post(fx)
+                    else:
+                        seg = AudioSegment.silent(duration=200)
                 elif entry.get("type") == "pause":
                     seg = AudioSegment.silent(
                         duration=int(entry.get("duration", 300)))
                 else:
                     seg = AudioSegment.silent(duration=50)
 
-                pad_after = rel_idx < (len(indices_to_process) - 1)
+                # Avoid PAD if the very next entry in the full sequence is an explicit pause
+                next_is_pause = (i + 1 < len(sequence)
+                                 and sequence[i + 1].get("type") == "pause")
+                pad_after = (not next_is_pause) and (i < len(sequence) - 1)
                 consolidated = self._merge(
                     consolidated, seg, pad_after=pad_after)
 

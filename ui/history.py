@@ -12,6 +12,13 @@ def _parse_iso(ts: str) -> datetime:
         return datetime.min
 
 
+def _format_dt(dt: datetime, tz_label: str = "UTC") -> str:
+    try:
+        return dt.strftime("%b %d, %Y, %I:%M %p") + f" ({tz_label})"
+    except Exception:
+        return "-"
+
+
 def create_history_tab():
     st.markdown("### 🕓 Project History")
     st.caption("View past generations")
@@ -22,7 +29,7 @@ def create_history_tab():
         <style>
         .history-scroll { max-height: 540px; overflow-y: auto; padding-right: 8px; }
         .history-card { border: 1px solid #eee; border-radius: 8px; padding: 12px; margin-bottom: 10px; background: #fff; }
-        .history-title { font-weight: 600; font-size: 0.95rem; }
+        .history-title { font-weight: 600; font-size: 0.95rem; color: #111; }
         .history-meta { color: #666; font-size: 0.85rem; }
         .chip-ok { display:inline-block; padding:2px 8px; border-radius:12px; background:#e6ffed; color:#1a7f37; font-size:0.8rem; margin-left:8px; }
         .chip-bad { display:inline-block; padding:2px 8px; border-radius:12px; background:#ffecec; color:#b30000; font-size:0.8rem; margin-left:8px; }
@@ -84,6 +91,7 @@ def create_history_tab():
     for e in entries:
         status_ok = e["status"] == "COMPLETED"
         chip = '<span class="chip-ok">✅ Success</span>' if status_ok else '<span class="chip-bad">❌ Failed</span>'
+        pretty_time = _format_dt(e["dt"], "UTC")
         if e.get("url"):
             if status_ok:
                 download_html = f'<a class="btn" href="{e["url"]}" target="_blank">Download</a>'
@@ -94,7 +102,7 @@ def create_history_tab():
         card_html = f"""
         <div class="history-card">
             <div class="history-title">{e["project_id"]} {chip}</div>
-            <div class="history-meta">Updated: {e["last_updated"]}</div>
+            <div class="history-meta">Updated: {pretty_time}</div>
             <div style=\"margin-top:8px;\">{download_html}</div>
         </div>
         """
