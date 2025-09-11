@@ -13,6 +13,8 @@ from utils.chunking import chunk_text
 from utils.state_manager import ProjectStateManager
 from utils.s3_utils import s3_upload_bytes, s3_generate_presigned_url, s3_get_bytes
 from audio.utils import get_flat_character_voices
+from parsers.dialogue_parser import DialogueParser
+from audio.generator import DialogueAudioGenerator
 
 
 @dataclass
@@ -34,6 +36,9 @@ class ResumableBatchGenerator:
         self.audio_key = self.state.audio_key
         self.voice_map = self._load_voice_map()
         self.default_voice_id = self._resolve_default_voice()
+        self.TARGET_DBFS = -16.0
+        self.PAD_MS = 250
+        self.CROSSFADE_MS = 100
 
     def _load_voice_map(self) -> Dict[str, Dict[str, str]]:
         # Returns mapping character name (case sensitive keys) -> {voice_id, gender}
@@ -86,25 +91,78 @@ class ResumableBatchGenerator:
     def _post(self, seg: AudioSegment) -> AudioSegment:
         if not seg:
             return AudioSegment.silent(duration=200)
+        # Gentle dynamics, then align to target loudness
         norm = effects.normalize(seg, headroom=1.0)
         comp = effects.compress_dynamic_range(
             norm, threshold=-18.0, ratio=2.0, attack=5.0, release=50.0)
+        try:
+            current = comp.dBFS
+            if current != float("-inf"):
+                comp = comp.apply_gain(self.TARGET_DBFS - current)
+        except Exception:
+            pass
         return comp.fade_in(10).fade_out(30)
 
     def _ensure(self, seg: AudioSegment) -> AudioSegment:
         return seg.set_sample_width(2).set_channels(2).set_frame_rate(44100)
 
-    def _merge(self, base: AudioSegment, add: AudioSegment) -> AudioSegment:
+    def _merge(self, base: AudioSegment, add: AudioSegment, pad_after: bool) -> AudioSegment:
         base = self._ensure(base)
         add = self._ensure(add)
         if len(base) > 0:
-            return base.append(add, crossfade=80)
-        return base + add
+            merged = base.append(add, crossfade=self.CROSSFADE_MS)
+        else:
+            merged = base + add
+        if pad_after:
+            merged = merged + AudioSegment.silent(duration=self.PAD_MS)
+        return merged
+
+    def _finalize_consolidated(self, audio: AudioSegment) -> AudioSegment:
+        if not audio:
+            return audio
+        audio = effects.normalize(audio, headroom=1.0)
+        audio = effects.compress_dynamic_range(
+            audio, threshold=-18.0, ratio=2.0, attack=5.0, release=80.0)
+        try:
+            current = audio.dBFS
+            if current != float("-inf"):
+                audio = audio.apply_gain(self.TARGET_DBFS - current)
+        except Exception:
+            pass
+        return audio
 
     def _export(self, audio: AudioSegment) -> bytes:
         out = io.BytesIO()
         audio.export(out, format="mp3", bitrate="128k")
         return out.getvalue()
+
+    def _get_voice_assignments(self) -> Dict[str, str]:
+        # Prefer user session voice assignments; fallback to flattened defaults
+        try:
+            import streamlit as st
+            for key in ("paste_voice_assignments", "upload_voice_assignments", "vm_voice_mappings"):
+                if key in st.session_state and isinstance(st.session_state[key], dict) and st.session_state[key]:
+                    return st.session_state[key]
+        except Exception:
+            pass
+        # Fallback
+        flat = get_flat_character_voices()
+        # Convert dict values {voice_id: ...} -> voice_id string for parser compatibility
+        simple: Dict[str, str] = {}
+        for name, data in flat.items():
+            if isinstance(data, dict):
+                vid = data.get("voice_id")
+            else:
+                vid = data
+            if vid:
+                simple[name] = vid
+        return simple
+
+    def _build_sequence(self, full_text: str) -> List[Dict]:
+        parser = DialogueParser()
+        assignments = self._get_voice_assignments()
+        seq = parser.parse_dialogue(full_text, assignments)
+        return seq or []
 
     def _select_voice_for_text(self, text: str) -> str:
         # Heuristics: match leading [Character] or Character: patterns
@@ -161,18 +219,21 @@ class ResumableBatchGenerator:
         self.state.set_latest_url(url)
 
     def run(self, full_text: str, progress_cb: Optional[Callable[[int, int], None]] = None):
-        tasks = self._build_tasks(full_text)
-        if not tasks:
+        sequence = self._build_sequence(full_text)
+        if not sequence:
             return
+        # Build deterministic IDs per entry to track progress
+        ids: List[str] = [
+            f"{self.project_id}_chunk{str(i+1).zfill(3)}" for i in range(len(sequence))]
         if not self.state.load():
-            self.state.init_state([t.id for t in tasks])
+            self.state.init_state(ids)
 
-        id_to_task = {t.id: t for t in tasks}
         pending_ids = self.state.get_pending_chunks()
-        ordered = [id_to_task[i] for i in pending_ids if i in id_to_task]
+        indices_to_process: List[int] = [
+            i for i, cid in enumerate(ids) if cid in pending_ids]
 
-        total = len(tasks)
-        completed = total - len(ordered)
+        total = len(ids)
+        completed = total - len(indices_to_process)
 
         consolidated = AudioSegment.silent(duration=0)
         existing = s3_get_bytes(self.audio_key)
@@ -189,16 +250,45 @@ class ResumableBatchGenerator:
             except Exception:
                 pass
 
+        # Prepare TTS futures for pending speech entries
+        gen_fx_loader = DialogueAudioGenerator()
         with ThreadPoolExecutor(max_workers=self.max_workers) as pool:
-            futures = [pool.submit(self._tts_chunk, t.text, t.voice_id)
-                       for t in ordered]
-            for idx, task in enumerate(ordered):
-                seg = futures[idx].result()
-                seg = self._post(seg)
-                consolidated = self._merge(consolidated, seg)
+            speech_futures: Dict[int, any] = {}
+            for i in indices_to_process:
+                entry = sequence[i]
+                if entry.get("type") == "speech":
+                    vid = entry.get("voice_id")
+                    if isinstance(vid, dict):
+                        vid = vid.get("voice_id")
+                    if not vid:
+                        text_for_voice = f"[{entry.get('character','Narrator')}] {entry.get('text','')}"
+                        vid = self._select_voice_for_text(text_for_voice)
+                    speech_futures[i] = pool.submit(
+                        self._tts_chunk, entry.get("text", ""), vid)
+
+            # Sequentially merge in order for all pending entries
+            for rel_idx, i in enumerate(indices_to_process):
+                entry = sequence[i]
+                seg: Optional[AudioSegment] = None
+                if entry.get("type") == "speech":
+                    seg = speech_futures[i].result()
+                    seg = self._post(seg)
+                elif entry.get("type") == "sound_effect":
+                    fx = gen_fx_loader.load_sound_effect(
+                        entry.get("effect_name"))
+                    seg = fx if fx else AudioSegment.silent(duration=200)
+                elif entry.get("type") == "pause":
+                    seg = AudioSegment.silent(
+                        duration=int(entry.get("duration", 300)))
+                else:
+                    seg = AudioSegment.silent(duration=50)
+
+                pad_after = rel_idx < (len(indices_to_process) - 1)
+                consolidated = self._merge(
+                    consolidated, seg, pad_after=pad_after)
 
                 self._upload_and_update(consolidated)
-                self.state.mark_chunk_done(task.id)
+                self.state.mark_chunk_done(ids[i])
 
                 completed += 1
                 if progress_cb:
@@ -207,6 +297,9 @@ class ResumableBatchGenerator:
                     except Exception:
                         pass
 
+        # Final mastering and upload normalized audio
+        consolidated = self._finalize_consolidated(consolidated)
+        self._upload_and_update(consolidated)
         self.state.set_status("COMPLETED")
         self.state.set_latest_url(
             s3_generate_presigned_url(self.audio_key, 3600))
