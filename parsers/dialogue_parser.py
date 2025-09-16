@@ -1,7 +1,6 @@
 import streamlit as st
 import re
 from config_loader import CHARACTER_VOICES, EMOTION_TAGS
-from audio.utils import normalize_effect_name
 
 
 class DialogueParser:
@@ -33,8 +32,7 @@ class DialogueParser:
             text_part = re.sub(
                 r'^\[([^\]]+)\]\s*(\([^)]+\))*\s*:', '', line).strip()
 
-            # Extract sound effects and clean text
-            sound_effects = re.findall(r'\*([^*]+)\*', text_part)
+            # Clean text (legacy FX markers removed if present)
             clean_text = re.sub(r'\*[^*]+\*', '', text_part).strip()
 
             # Build emotion text
@@ -60,18 +58,7 @@ class DialogueParser:
                 "original_text": clean_text
             })
 
-            for effect in sound_effects:
-                dialogue_sequence.append({
-                    "type": "pause",
-                    "duration": 300
-                })
-
-                # Normalize effect name before saving
-                norm_name = normalize_effect_name(effect.strip())
-                dialogue_sequence.append({
-                    "type": "sound_effect",
-                    "effect_name": norm_name
-                })
+            # FX entries removed from pipeline
 
             # Add pause after each line (but not if it's the last line)
             # This ensures natural spacing between dialogue lines

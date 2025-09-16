@@ -64,10 +64,7 @@ def create_main_generator_content():
             del st.session_state.emotion_to_add
             st.success("Emotion added successfully.")
 
-        if 'effect_to_add' in st.session_state:
-            st.session_state.dialogue_text += f" {st.session_state.effect_to_add}"
-            del st.session_state.effect_to_add
-            st.success("Effect added successfully.")
+        # FX insert removed
 
         paste_text = st.text_area(
             "Paste your dialogue text here:",
@@ -217,10 +214,7 @@ def create_main_generator_content():
             del st.session_state.emotion_to_add
             st.success("Emotion added successfully.")
 
-        if 'effect_to_add' in st.session_state and st.session_state.upload_dialogue_text:
-            st.session_state.upload_dialogue_text += f" {st.session_state.effect_to_add}"
-            del st.session_state.effect_to_add
-            st.success("Effect added successfully.")
+        # FX insert removed
 
         upload_text = st.text_area(
             "Edit the uploaded text here:",

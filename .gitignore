@@ -25,6 +25,7 @@ Thumbs.db
 fx_library/
 ffmpeg/
 nltk_data/
+audio_output/
 
 # Binaries
 ffprobe

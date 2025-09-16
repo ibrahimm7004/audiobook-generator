@@ -9,7 +9,7 @@ import io
 import time
 from datetime import datetime
 from pydub import AudioSegment, effects
-from audio.utils import SOUND_EFFECTS, get_flat_character_voices
+from audio.utils import get_flat_character_voices
 from utils.downloads import create_output_folders
 
 
@@ -20,7 +20,7 @@ class DialogueAudioGenerator:
         self.fx_library_path = Path(fx_library_path)
         self.temp_dir = Path(tempfile.mkdtemp())
         self.character_voices = get_flat_character_voices()
-        self.sound_effects = SOUND_EFFECTS
+        # FX removed
         self.output_folders = create_output_folders()
 
     def apply_post_processing(self, audio: AudioSegment) -> AudioSegment:
@@ -98,34 +98,8 @@ class DialogueAudioGenerator:
             return AudioSegment.silent(duration=1000)
 
     def load_sound_effect(self, effect_name):
-        """Load sound effect from fx library using configured mappings"""
-        if effect_name not in self.sound_effects:
-            st.warning(
-                f"Unknown sound effect: '{effect_name}'. Available: {list(self.sound_effects.keys())}")
-            return AudioSegment.silent(duration=500)
-
-        filename = self.sound_effects[effect_name]
-        fx_file = self.fx_library_path / filename
-
-        if not fx_file.exists():
-            st.warning(f"Sound effect file not found: {fx_file}")
-            return AudioSegment.silent(duration=500)
-
-        try:
-            ext = fx_file.suffix.lower()
-            if ext == '.mp3':
-                return AudioSegment.from_mp3(fx_file)
-            elif ext == '.wav':
-                return AudioSegment.from_wav(fx_file)
-            elif ext == '.m4a':
-                return AudioSegment.from_file(fx_file, format="m4a")
-            elif ext == '.ogg':
-                return AudioSegment.from_ogg(fx_file)
-            else:
-                return AudioSegment.from_file(fx_file, format=ext.lstrip("."))
-        except Exception as e:
-            st.warning(f"Error loading {fx_file}: {e}")
-            return AudioSegment.silent(duration=500)
+        """FX removed: return short silence for compatibility."""
+        return AudioSegment.silent(duration=300)
 
     def _save_to_organized_folder(self, audio_data: bytes, output_type: str, project_name: str):
         """Save audio to organized folder structure"""
@@ -248,11 +222,9 @@ class DialogueAudioGenerator:
                     if audio:
                         batch_segments.append(audio)
 
+                # FX entries removed from sequence; keep branch for safety
                 elif entry["type"] == "sound_effect":
-                    status_text.text(
-                        f"🔊 Adding sound effect: {entry['effect_name']}")
-                    effect_audio = self.load_sound_effect(entry["effect_name"])
-                    batch_segments.append(effect_audio)
+                    batch_segments.append(AudioSegment.silent(duration=300))
 
                 elif entry["type"] == "pause":
                     duration = entry.get("duration", 500)

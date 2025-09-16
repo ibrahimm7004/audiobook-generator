@@ -114,11 +114,7 @@ def create_teaser_generator_tab():
         st.session_state.teaser_text += f" {st.session_state.emotion_to_add}"
         del st.session_state.emotion_to_add
         st.success("Emotion added successfully.")
-
-    if 'effect_to_add' in st.session_state and st.session_state.get('teaser_text', ''):
-        st.session_state.teaser_text += f" {st.session_state.effect_to_add}"
-        del st.session_state.effect_to_add
-        st.success("Effect added successfully.")
+    # FX insert removed
 
     # Teaser text input
     teaser_text = st.text_area(
@@ -513,8 +509,7 @@ def create_raw_parser_tab(get_known_characters_callable):
         include_narration = st.checkbox(
             "Include Narration as [Narrator]", value=True, key="raw_inc_narr")
     with col2:
-        attach_fx = st.checkbox(
-            "Detect FX from narration (gasp/laugh/etc.)", value=True, key="raw_attach_fx")
+        attach_fx = False
 
     # Friendly notice about character handling
     st.info(
@@ -547,8 +542,7 @@ def create_raw_parser_tab(get_known_characters_callable):
         else:
             with st.spinner("Generating..."):
                 parser = OpenAIParser(
-                    include_narration=include_narration,
-                    detect_fx=attach_fx
+                    include_narration=include_narration
                 )
                 result = parser.convert(raw_text)
 

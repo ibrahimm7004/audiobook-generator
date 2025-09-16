@@ -288,14 +288,9 @@ class ResumableBatchGenerator:
                 if entry.get("type") == "speech":
                     seg = speech_futures[i].result()
                     seg = self._post(seg)
+                # FX removed: ignore sound_effect entries if any remain
                 elif entry.get("type") == "sound_effect":
-                    fx = gen_fx_loader.load_sound_effect(
-                        entry.get("effect_name"))
-                    if fx:
-                        fx = self._trim_silence(fx)
-                        seg = self._post(fx)
-                    else:
-                        seg = AudioSegment.silent(duration=200)
+                    seg = AudioSegment.silent(duration=200)
                 elif entry.get("type") == "pause":
                     seg = AudioSegment.silent(
                         duration=int(entry.get("duration", 300)))

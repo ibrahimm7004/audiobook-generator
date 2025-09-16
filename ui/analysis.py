@@ -1,7 +1,7 @@
 import streamlit as st
 from parsers.text_parser import ParseAnalysis
 from audio.voice_manager import VoiceManager
-from audio.utils import get_flat_character_voices, get_flat_emotion_tags, normalize_effect_name, SOUND_EFFECTS, CHARACTER_VOICES
+from audio.utils import get_flat_character_voices, get_flat_emotion_tags, CHARACTER_VOICES
 
 
 def display_analysis_results(analysis: ParseAnalysis):
@@ -18,11 +18,10 @@ def display_analysis_results(analysis: ParseAnalysis):
         st.metric("😊 Emotions Used", len(analysis.emotions_found))
 
     with col3:
-        st.metric("🔊 Sound Effects", len(analysis.sound_effects_found))
+        st.metric("🔊 Sound Effects", 0)
         st.metric("⚠️ Issues Found",
                   len(analysis.unsupported_characters) +
-                  len(analysis.unsupported_emotions) +
-                  len(analysis.unsupported_sound_effects))
+                  len(analysis.unsupported_emotions))
 
     # Detailed breakdowns
     col1, col2 = st.columns(2)
@@ -42,17 +41,12 @@ def display_analysis_results(analysis: ParseAnalysis):
                 st.markdown(f"{status} **{emotion}**: {count} times")
 
     with col2:
-        if analysis.sound_effects_found:
-            st.markdown("### 🔊 Sound Effects Usage")
-            for effect, count in sorted(analysis.sound_effects_found.items(), key=lambda x: x[1], reverse=True):
-                norm_effect = normalize_effect_name(effect)
-                status = "✅" if norm_effect in SOUND_EFFECTS else "❌"
-                st.markdown(f"{status} **{effect}**: {count} times")
+        # FX usage removed
+        pass
 
     # Issues section
     if (analysis.unsupported_characters or
-        analysis.unsupported_emotions or
-            analysis.unsupported_sound_effects):
+            analysis.unsupported_emotions):
 
         st.markdown("### ⚠️ Issues Found")
 
@@ -66,10 +60,7 @@ def display_analysis_results(analysis: ParseAnalysis):
             for emotion in analysis.unsupported_emotions:
                 st.markdown(f"⚠️ {emotion}")
 
-        if analysis.unsupported_sound_effects:
-            st.warning("**Unsupported Sound Effects:**")
-            for effect in analysis.unsupported_sound_effects:
-                st.markdown(f"⚠️ {effect}")
+        # FX unsupported removed
 
 
 def create_voice_management_interface(analysis: ParseAnalysis, tab_prefix: str):

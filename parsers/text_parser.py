@@ -3,8 +3,8 @@ from typing import List, Dict, Optional, Tuple
 from collections import defaultdict
 from dataclasses import dataclass
 import streamlit as st
-from audio.utils import normalize_effect_name, SOUND_EFFECTS
 from audio.utils import get_flat_character_voices, get_flat_emotion_tags
+from typing import List, Dict, Optional, Tuple
 import time
 
 
@@ -77,7 +77,7 @@ class TextParser:
     def __init__(self):
         self.character_voices = get_flat_character_voices()
         self.emotion_tags = get_flat_emotion_tags()
-        self.sound_effects = SOUND_EFFECTS
+        # FX removed
 
     def analyze_text(self, text: str) -> ParseAnalysis:
         """Analyze text and provide comprehensive statistics (batched with progress)."""
@@ -121,12 +121,7 @@ class TextParser:
                         if emotion not in self.emotion_tags:
                             unsupported_emotions.add(emotion)
 
-                    # Count sound effects
-                    for effect in parsed.sound_effects:
-                        sound_effects_found[effect] += 1
-                        norm_effect = normalize_effect_name(effect)
-                        if norm_effect not in self.sound_effects:
-                            unsupported_sound_effects.add(effect)
+                    # FX removed
 
             processed_lines += len(chunk)
             if progress_bar is not None and total_lines:
@@ -135,10 +130,10 @@ class TextParser:
         return ParseAnalysis(
             characters_found=dict(characters_found),
             emotions_found=dict(emotions_found),
-            sound_effects_found=dict(sound_effects_found),
+            sound_effects_found={},
             unsupported_characters=list(unsupported_characters),
             unsupported_emotions=list(unsupported_emotions),
-            unsupported_sound_effects=list(unsupported_sound_effects),
+            unsupported_sound_effects=[],
             total_lines=total_lines,
             dialogue_lines=dialogue_lines
         )
@@ -193,8 +188,8 @@ class TextParser:
         else:
             return None
 
-        # Extract sound effects and clean text
-        sound_effects = re.findall(r'\*([^*]+)\*', text_part)
+        # Clean text; strip legacy *fx* if present
+        sound_effects = []
         clean_text = re.sub(r'\*[^*]+\*', '', text_part).strip()
 
         if not clean_text:
@@ -229,8 +224,7 @@ class TextParser:
                 # Format to standard format
                 emotion_text = ''.join(
                     [f"({emotion})" for emotion in parsed.emotions])
-                effect_text = ''.join(
-                    [f"*{effect}*" for effect in parsed.sound_effects])
+                effect_text = ''
 
                 formatted_line = f"[{parsed.character}] {emotion_text}: {parsed.text} {effect_text}".strip(
                 )

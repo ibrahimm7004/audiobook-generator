@@ -19,5 +19,4 @@ with open(CONFIG_DIR / "adverb_to_emotion.json", "r", encoding="utf-8") as f:
 with open(CONFIG_DIR / "verb_to_emotion.json", "r", encoding="utf-8") as f:
     VERB_TO_EMOTION = json.load(f)
 
-with open(CONFIG_DIR / "fx_effects.json", "r", encoding="utf-8") as f:
-    FX_EFFECTS = json.load(f)
+# FX effects removed from the application

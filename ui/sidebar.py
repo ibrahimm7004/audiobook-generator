@@ -1,5 +1,5 @@
 import streamlit as st
-from audio.utils import CHARACTER_VOICES, EMOTION_TAGS, SOUND_EFFECTS
+from audio.utils import CHARACTER_VOICES, EMOTION_TAGS
 
 
 def create_navigation_sidebar():
@@ -72,15 +72,7 @@ def create_navigation_sidebar():
                         st.code(vid, language=None)
                 st.divider()
 
-        # Sound Effects Accordion
-        with st.expander("🔊 Sound Effects", expanded=False):
-            st.markdown("**Available in fx_library:**")
-            cols = st.columns(1)
-            for effect, filename in SOUND_EFFECTS.items():
-                if st.button(f"*{effect}*", key=f"fx_{effect}", use_container_width=True):
-                    # Store effect to add to the current active tab
-                    st.session_state.effect_to_add = f"*{effect}*"
-                st.caption(f"📁 {filename}")
+        # Sound Effects removed from application
 
         # Output folders info
         with st.expander("📁 Output Folders", expanded=False):
