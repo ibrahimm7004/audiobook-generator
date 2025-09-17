@@ -549,6 +549,10 @@ def create_raw_parser_tab(get_known_characters_callable):
                 st.session_state["raw_last_formatted_text"] = result.formatted_text
                 st.session_state["raw_last_dialogues"] = result.dialogues
                 st.session_state["raw_last_stats"] = result.stats
+                st.session_state["raw_last_ambiguities"] = getattr(
+                    result, "ambiguities", [])
+                if "ambiguity_resolutions" not in st.session_state:
+                    st.session_state["ambiguity_resolutions"] = {}
                 st.session_state["raw_parsed_ready"] = True
             st.success("✅ Parsed successfully.")
 
@@ -568,6 +572,58 @@ def create_raw_parser_tab(get_known_characters_callable):
             st.metric("From before", stats.get("speaker_from_before", 0))
         with c5:
             st.metric("Narration", stats.get("narration_blocks", 0))
+
+        # --- Ambiguity resolution panel ---
+        ambiguities = st.session_state.get("raw_last_ambiguities", [])
+        if ambiguities:
+            st.markdown(f"#### 🧩 Resolve Ambiguities ({len(ambiguities)})")
+            apply_all_map = {}
+            for amb in ambiguities:
+                line_id = amb.get("id")
+                quote = amb.get("text", "")
+                candidates = amb.get("candidates", [])
+                st.markdown(f"**Quote:** \"{quote}\"")
+                # Allow adding a new candidate
+                options = candidates + ["➕ New character…"]
+                sel = st.selectbox(
+                    f"Select speaker for {line_id}", options=options,
+                    key=f"amb_sel_{line_id}"
+                )
+                new_name = None
+                if sel == "➕ New character…":
+                    new_name = st.text_input(
+                        f"Enter new character for {line_id}", key=f"amb_new_{line_id}")
+                apply_all = st.checkbox(
+                    "Apply to all similar", value=False, key=f"amb_all_{line_id}")
+                if st.button("Apply", key=f"amb_apply_{line_id}"):
+                    final_choice = (new_name.strip() if new_name else sel)
+                    if final_choice and final_choice != "➕ New character…":
+                        st.session_state["ambiguity_resolutions"][line_id] = final_choice
+                        # Apply to dialogues and formatted text
+                        resolved = 0
+                        for d in st.session_state.get("raw_last_dialogues", []):
+                            if d.get("character") == "Ambiguous" and d.get("text") == quote:
+                                d["character"] = final_choice
+                                resolved += 1
+                                if not apply_all:
+                                    break
+                        # Rebuild formatted text without [Ambiguous]
+                        lines = []
+                        for d in st.session_state.get("raw_last_dialogues", []):
+                            em = "".join(
+                                [f"({e})" for e in d.get("emotions", [])])
+                            lines.append(
+                                f"[{d.get('character')}] {em}: {d.get('text')}".strip())
+                        st.session_state["raw_last_formatted_text"] = "\n".join(
+                            lines)
+                        # Remove resolved ambiguity entries
+                        st.session_state["raw_last_ambiguities"] = [
+                            a for a in st.session_state["raw_last_ambiguities"]
+                            if not (a.get("text") == quote and (apply_all or a.get("id") == line_id))
+                        ]
+                        st.success(
+                            f"Applied '{final_choice}' to {resolved} line(s).")
+                        st.rerun()
 
         st.markdown("#### ▶ Standardized Output")
         st.code(

@@ -28,6 +28,14 @@ with open(_CONFIGS_DIR / "verb_to_emotion.json", "r", encoding="utf-8") as _f:
 with open(_CONFIGS_DIR / "adverb_to_emotion.json", "r", encoding="utf-8") as _f:
     ADVERB_TO_EMOTION = json.load(_f)
 
+# Stopwords to prevent junk speaker labels
+STOPWORDS = {
+    "I", "You", "He", "She", "It", "We", "They", "My", "Mine", "Your", "Yours", "His", "Hers", "Our", "Ours",
+    "Their", "Theirs", "This", "That", "These", "Those", "Here", "There", "Then", "When", "While", "Where",
+    "Which", "Who", "Whom", "Because", "But", "And", "Or", "If", "So", "Not", "No", "Yes", "OK", "Okay",
+    "Please", "Professor", "The", "A", "An", "On", "In", "At", "Of", "By", "For", "With", "As", "To", "From"
+}
+
 # Build allowed emotion set (flat) from all categories in emotion_tags.json
 ALLOWED_EMOTIONS = set()
 for _category_dict in _EMOTION_TAGS_JSON.values():
@@ -71,6 +79,7 @@ class RawParseResult:
     formatted_text: str
     dialogues: List[Dict]
     stats: Dict[str, int]
+    ambiguities: List[Dict] = field(default_factory=list)
 
 
 @dataclass
@@ -115,30 +124,36 @@ class OpenAIParser:
 
     def _build_system_prompt(self, state: ParserState) -> str:
         allowed_emotions_list = ", ".join(sorted(ALLOWED_EMOTIONS))
-        known_chars_snippet = ", ".join(sorted(list(state.known_characters))[
-                                        :50]) if state.known_characters else "(none)"
+        known_chars_snippet = ", ".join(sorted(list(state.known_characters)[
+                                        :50])) if state.known_characters else "(none)"
         last_speaker = state.last_speaker or "(none)"
         lines = [
             "You are a strict audiobook dialogue parser.",
-            "Output MUST be JSON Lines (JSONL), one object per line, with EXACT keys: character (string), emotions (array of 1-2 strings), text (string).",
+            "Output MUST be JSON Lines (JSONL), one object per line, with EXACT keys: character (string), emotions (array of 1–2 strings), text (string).",
             "Do not output anything other than JSONL. No commentary, no blank lines.",
+            "",
             "Character attribution rules:",
-            "- Infer speaker ONLY from the input text (names, pronouns, attribution).",
-            "- Resolve pronouns using nearby context. If ambiguous, default to the last known speaker; if still unknown, use 'Narrator'.",
-            "- Do NOT invent new characters. If a name is not clearly supported by the text, use 'Narrator'.",
-            "- Use canonical names; do not output nicknames unless explicitly used.",
+            "- Infer the speaker ONLY if the text clearly attributes it (explicit names, clear pronouns tied to a recent speaker, or direct dialogue tags like 'said Aria').",
+            "- If speaker identity is even slightly uncertain → use character 'Ambiguous'.",
+            "- For 'Ambiguous', always include a `candidates` array of 2–5 possible speakers (known characters, role placeholders, or 'Unknown').",
+            "- Do NOT default to the last speaker unless the pronoun is explicitly tied and unambiguous.",
+            "- Do NOT invent new names. If unsupported, use 'Narrator' (for description) or 'Ambiguous' (for unclear dialogue).",
+            "- Do not use junk tokens like 'My', 'When', 'And', 'If', etc. as characters.",
+            "",
             "Emotion rules:",
             "- Emotions must be 1–2 tags from ALLOWED_EMOTIONS. If none applies, use 'calm'.",
+            "",
             "Formatting rules:",
             "- Each JSON object must contain: character (string), emotions (array), text (string).",
-            "- No extra keys. No trailing commas. One JSON object per line.",
+            "- No extra keys except `candidates` when character == 'Ambiguous'.",
+            "- No trailing commas. One JSON object per line.",
             f"ALLOWED_EMOTIONS: {allowed_emotions_list}",
             f"Known characters so far: {known_chars_snippet}",
-            f"Last speaker: {last_speaker}",
+            f"Last speaker (may be used only if explicitly clear): {last_speaker}",
         ]
         if self.include_narration:
             lines.append(
-                "Include narration as lines with character 'Narrator' when appropriate.")
+                "Include narration as 'Narrator' only for non-spoken descriptive text.")
         else:
             lines.append(
                 "Do not include narration lines; only output spoken dialogue.")
@@ -146,8 +161,8 @@ class OpenAIParser:
         lines.extend([
             '{"character": "Brad", "emotions": ["angry"], "text": "Get up!"}',
             '{"character": "Zara", "emotions": ["calm"], "text": "Hello."}',
-            '{"character": "Brad", "emotions": ["calm"], "text": "How are you?"}',
-            '{"character": "Narrator", "emotions": ["calm"], "text": "Who\'s there?"}',
+            '{"character": "Narrator", "emotions": [], "text": "The room fell silent."}',
+            '{"character": "Ambiguous", "emotions": [], "candidates": ["Aria Amato", "Luca Moretti"], "text": "You two should keep your voices down."}',
         ])
         return "\n".join(lines)
 
@@ -238,21 +253,37 @@ class OpenAIParser:
             interim = validate_line(interim)
             emotions = interim["emotions"]
             character = state.canonicalize(character)
-            # Keep new/unseen characters as-is; add to known set for continuity
-            if character.lower() != "narrator":
-                state.known_characters.add(character)
-                state.last_speaker = character
-            result.append({
+            entry: Dict[str, Any] = {
                 "type": "speech",
                 "character": character,
                 "text": text,
                 "emotions": emotions,
-            })
+            }
+            if character.lower() == "ambiguous":
+                # Preserve candidates if present; do not update speaker continuity
+                cand_list = it.get("candidates") or []
+                if isinstance(cand_list, list):
+                    canonical_cands: List[str] = []
+                    seen: Set[str] = set()
+                    for c in cand_list:
+                        c_norm = state.canonicalize((c or "").strip())
+                        if not c_norm or c_norm in seen:
+                            continue
+                        seen.add(c_norm)
+                        canonical_cands.append(c_norm)
+                    if canonical_cands:
+                        entry["candidates"] = canonical_cands
+            else:
+                # Keep new/unseen characters as-is; add to known set for continuity
+                if character.lower() != "narrator":
+                    state.known_characters.add(character)
+                    state.last_speaker = character
+            result.append(entry)
         return result, warnings
 
     def convert(self, raw_text: str) -> RawParseResult:
         if not raw_text.strip():
-            return RawParseResult(formatted_text="", dialogues=[], stats={})
+            return RawParseResult(formatted_text="", dialogues=[], stats={}, ambiguities=[])
 
         chunks = self._split_into_chunks(raw_text, self.max_chars_per_chunk)
         state = ParserState(known_characters=set(
@@ -260,6 +291,7 @@ class OpenAIParser:
         all_dialogues: List[Dict[str, Any]] = []
         all_warnings: List[str] = []
         prev_summary: Optional[str] = None
+        ambiguities: List[Dict[str, Any]] = []
 
         for idx, chunk in enumerate(chunks):
             system_prompt = self._build_system_prompt(state)
@@ -286,6 +318,34 @@ class OpenAIParser:
                     self._save_debug_output(
                         raw_output, suffix=f"_retry_chunk{idx+1}")
                 items = self._parse_jsonl(raw_output)
+
+            # Collect Ambiguous lines from this chunk to drive UI resolution
+            try:
+                for it in items:
+                    ch = (it.get("character") or "").strip().lower()
+                    if ch == "ambiguous":
+                        txt = (it.get("text") or "").strip()
+                        cands = it.get("candidates") or []
+                        if not isinstance(cands, list):
+                            cands = []
+                        canonical_cands: List[str] = []
+                        seen: Set[str] = set()
+                        for c in cands:
+                            c_norm = state.canonicalize((c or "").strip())
+                            if not c_norm or c_norm in seen:
+                                continue
+                            seen.add(c_norm)
+                            canonical_cands.append(c_norm)
+                        if not canonical_cands:
+                            canonical_cands = ["Unknown"]
+                        ambiguities.append({
+                            "id": f"amb-{idx+1}-{abs(hash(txt))}",
+                            "text": txt,
+                            "candidates": canonical_cands[:5],
+                        })
+            except Exception:
+                # Ambiguity harvesting should not break parsing
+                pass
 
             validated, warns = self._validate_and_normalize(items, state)
             all_warnings.extend(warns)
@@ -325,7 +385,7 @@ class OpenAIParser:
             except Exception:
                 pass
 
-        return RawParseResult("\n".join(formatted_lines), reconciled, stats)
+        return RawParseResult("\n".join(formatted_lines), reconciled, stats, ambiguities)
 
     def _parse_line_flexible(self, line: str) -> Optional[ParsedDialogue]:
         original_line = line
