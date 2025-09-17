@@ -86,9 +86,45 @@ def create_history_tab():
     # Sort by most recent
     entries.sort(key=lambda e: e["dt"], reverse=True)
 
-    # Render
+    # --- Pagination (10 per page) ---
+    per_page = 10
+    total_items = len(entries)
+    total_pages = max(1, (total_items + per_page - 1) // per_page)
+
+    # Initialize current page in session state
+    if "history_page" not in st.session_state:
+        st.session_state["history_page"] = 1
+
+    # Clamp page within bounds
+    current_page = max(1, min(st.session_state["history_page"], total_pages))
+    st.session_state["history_page"] = current_page
+
+    # Compute slice indices
+    start_idx = (current_page - 1) * per_page
+    end_idx = min(start_idx + per_page, total_items)
+    page_entries = entries[start_idx:end_idx]
+
+    # Page header and controls
+    col_a, col_b, col_c = st.columns([1, 2, 1])
+    with col_a:
+        prev_disabled = current_page <= 1
+        if st.button("◀ Previous", disabled=prev_disabled, use_container_width=True, key="hist_prev_btn"):
+            if st.session_state["history_page"] > 1:
+                st.session_state["history_page"] -= 1
+                st.rerun()
+    with col_b:
+        st.markdown(
+            f"<div style='text-align:center; font-weight:600;'>Page {current_page} of {total_pages}</div>", unsafe_allow_html=True)
+    with col_c:
+        next_disabled = current_page >= total_pages
+        if st.button("Next ▶", disabled=next_disabled, use_container_width=True, key="hist_next_btn"):
+            if st.session_state["history_page"] < total_pages:
+                st.session_state["history_page"] += 1
+                st.rerun()
+
+    # Render current page
     st.markdown('<div class="history-scroll">', unsafe_allow_html=True)
-    for e in entries:
+    for e in page_entries:
         status_ok = e["status"] == "COMPLETED"
         chip = '<span class="chip-ok">✅ Success</span>' if status_ok else '<span class="chip-bad">❌ Failed</span>'
         pretty_time = _format_dt(e["dt"], "UTC")
