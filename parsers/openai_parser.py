@@ -238,11 +238,7 @@ class OpenAIParser:
             interim = validate_line(interim)
             emotions = interim["emotions"]
             character = state.canonicalize(character)
-            if character not in state.known_characters and character.lower() != "narrator":
-                fallback = state.last_speaker or "Narrator"
-                warnings.append(
-                    f"Unknown character '{character}' → using '{fallback}'.")
-                character = fallback
+            # Keep new/unseen characters as-is; add to known set for continuity
             if character.lower() != "narrator":
                 state.known_characters.add(character)
                 state.last_speaker = character
