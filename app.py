@@ -30,10 +30,10 @@ def create_main_generator_content():
 
     # Initialize session state with example text but no analysis
     if 'dialogue_text' not in st.session_state:
-        st.session_state.dialogue_text = """[Brad] (whispers)(excited): The security system is down. This is our chance. *apartmentcreaks*
-[Arabella] (sighs)(frustrated): I still don't like this plan, Brad. *gasps*
-[Grandpa Spuds Oxley] (mischievously): Relax, tesoro. What could go wrong? *laughs*
-[Christian] (cold)(calm): Everything. That's what experience teaches you. *growls*"""
+        st.session_state.dialogue_text = """[Brad] (whispers)(excited): The security system is down. This is our chance.
+[Arabella] (sighs)(frustrated): I still don't like this plan, Brad. 
+[Grandpa Spuds Oxley] (mischievously): Relax, tesoro. What could go wrong?
+[Christian] (cold)(calm): Everything. That's what experience teaches you."""
 
     # Initialize upload dialogue text separately
     if 'upload_dialogue_text' not in st.session_state:
